@@ -101,7 +101,7 @@ namespace cg_proj2
         {
             this.dataContext.Title = str;
         }
-        static public void DrawPixel(int x, int y, bool del = false)
+        static public void DrawPixel(int x, int y, Color clr, bool del = false)
         {
             int column = x;
             int row = y;
@@ -124,9 +124,9 @@ namespace cg_proj2
                     }
                     else
                     {
-                        color_data = 255 << 16; // R
-                        color_data |= 255 << 8; // G
-                        color_data |= 255 << 0; // B
+                        color_data = clr.R << 16; // R
+                        color_data |= clr.G << 8; // G
+                        color_data |= clr.B << 0; // B
                     }
 
 
@@ -237,8 +237,8 @@ namespace cg_proj2
                     p2.X = x;
                     p2.Y = y;
                     counter = 0;
-                    DrawLine((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y);
-                    shapes.Add(new Line((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y));
+                    DrawLine((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, color);
+                    shapes.Add(new Line((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, color));
                     p1 = new Point();
                     p2 = new Point();
                     i.Cursor = Cursors.Arrow;
@@ -271,8 +271,8 @@ namespace cg_proj2
                         p2 = new Point();
                         return;
                     }
-                    MidpointCircle((int)len, (int)p1.X, (int)p1.Y);
-                    shapes.Add(new Circle((int)len, (int)p1.X, (int)p1.Y));
+                    MidpointCircle((int)len, (int)p1.X, (int)p1.Y, color);
+                    shapes.Add(new Circle((int)len, (int)p1.X, (int)p1.Y, color));
                     p1 = new Point();
                     p2 = new Point();
                     i.Cursor = Cursors.Arrow;
@@ -307,8 +307,8 @@ namespace cg_proj2
                     double xdY = Vyp / len * R;
                     //MessageBox.Show($"{xdX}, {xdY}");
                     counter = 0;
-                    if (DrawLine((int)p1.X + (int)xdX, (int)p1.Y + (int)xdY, (int)p2.X + (int)xdX, (int)p2.Y + (int)xdY) &&
-                        DrawLine((int)p1.X - (int)xdX, (int)p1.Y - (int)xdY, (int)p2.X - (int)xdX, (int)p2.Y - (int)xdY)) { }
+                    if (DrawLine((int)p1.X + (int)xdX, (int)p1.Y + (int)xdY, (int)p2.X + (int)xdX, (int)p2.Y + (int)xdY, color) &&
+                        DrawLine((int)p1.X - (int)xdX, (int)p1.Y - (int)xdY, (int)p2.X - (int)xdX, (int)p2.Y - (int)xdY, color)) { }
                     else
                     {
                         MessageBox.Show("Elipse out of bounds");
@@ -321,7 +321,7 @@ namespace cg_proj2
                 if (counter == 0)
                 {
                     i.Cursor = Cursors.Cross;
-                    poly = new Polygon(x, y);
+                    poly = new Polygon(x, y, color);
                     shapes.Add(poly);
                     counter++;
                 }
@@ -339,7 +339,7 @@ namespace cg_proj2
             }
             else if (mode == Modes.DrawBrush)
             {
-                DrawBrush(x, y);
+                DrawBrush(x, y, color);
                 //mouseDown = true;
             }
         }
@@ -365,11 +365,11 @@ namespace cg_proj2
                 new MouseButtonEventHandler(i_MouseLeftButtonDown);
             i.MouseRightButtonDown +=
                 new MouseButtonEventHandler(i_MouseRightButtonDown);
-            actualHeight = (int)writeableBitmap.Height; 
+            actualHeight = (int)writeableBitmap.Height;
             actualWidth = (int)writeableBitmap.Width;
         }
 
-        static void SymmetricLineENE(int x1, int y1, int x2, int y2, bool del)
+        static void SymmetricLineENE(int x1, int y1, int x2, int y2, Color clr, bool del)
         {
             //MessageBox.Show($"P1: {x1}, {y1}; P2: {x2}, {y2}");
             int dx = x2 - x1;
@@ -379,8 +379,8 @@ namespace cg_proj2
             int dNE = 2 * (dy - dx);
             int xf = x1, yf = y1;
             int xb = x2, yb = y2;
-            DrawPixel(xf, yf, del);
-            DrawPixel(xb, yb, del);
+            DrawPixel(xf, yf, clr, del);
+            DrawPixel(xb, yb, clr, del);
             while (xf < xb)
             {
                 ++xf;
@@ -392,12 +392,12 @@ namespace cg_proj2
                     ++yf;
                     --yb;
                 }
-                DrawPixel(xf, yf, del);
-                DrawPixel(xb, yb, del);
+                DrawPixel(xf, yf, clr, del);
+                DrawPixel(xb, yb, clr, del);
             }
         }
 
-        static void SymmetricLineNNE(int x1, int y1, int x2, int y2, bool del)
+        static void SymmetricLineNNE(int x1, int y1, int x2, int y2, Color clr, bool del)
         {
             //MessageBox.Show($"P1: {x1}, {y1}; P2: {x2}, {y2}");
             int dx = x2 - x1;
@@ -407,8 +407,8 @@ namespace cg_proj2
             int dNE = 2 * (dx - dy);
             int xf = x1, yf = y1;
             int xb = x2, yb = y2;
-            DrawPixel(xf, yf, del);
-            DrawPixel(xb, yb, del);
+            DrawPixel(xf, yf, clr, del);
+            DrawPixel(xb, yb, clr, del);
             while (yf < yb)
             {
 
@@ -427,12 +427,12 @@ namespace cg_proj2
                     ++xf;
                     --xb;
                 }
-                DrawPixel(xf, yf, del);
-                DrawPixel(xb, yb, del);
+                DrawPixel(xf, yf, clr, del);
+                DrawPixel(xb, yb, clr, del);
             }
         }
 
-        static void SymmetricLineESE(int x1, int y1, int x2, int y2, bool del)
+        static void SymmetricLineESE(int x1, int y1, int x2, int y2, Color clr, bool del)
         {
             //MessageBox.Show($"P1: {x1}, {y1}; P2: {x2}, {y2}");
             int dx = x2 - x1;
@@ -442,8 +442,8 @@ namespace cg_proj2
             int dSE = 2 * (dy + dx);
             int xf = x1, yf = y1;
             int xb = x2, yb = y2;
-            DrawPixel(xf, yf, del);
-            DrawPixel(xb, yb, del);
+            DrawPixel(xf, yf, clr, del);
+            DrawPixel(xb, yb, clr, del);
             while (xf < xb)
             {
                 ++xf;
@@ -455,12 +455,12 @@ namespace cg_proj2
                     --yf;
                     ++yb;
                 }
-                DrawPixel(xf, yf, del);
-                DrawPixel(xb, yb, del);
+                DrawPixel(xf, yf, clr, del);
+                DrawPixel(xb, yb, clr, del);
             }
         }
 
-        static void SymmetricLineSSE(int x1, int y1, int x2, int y2, bool del)
+        static void SymmetricLineSSE(int x1, int y1, int x2, int y2, Color clr, bool del)
         {
             //MessageBox.Show($"P1: {x1}, {y1}; P2: {x2}, {y2}");
             int dx = x2 - x1;
@@ -470,8 +470,8 @@ namespace cg_proj2
             int dSE = 2 * (dy + dx);
             int xf = x1, yf = y1;
             int xb = x2, yb = y2;
-            DrawPixel(xf, yf, del);
-            DrawPixel(xb, yb, del);
+            DrawPixel(xf, yf, clr, del);
+            DrawPixel(xb, yb, clr, del);
             while (yf > yb)
             {
 
@@ -489,12 +489,12 @@ namespace cg_proj2
                     --yf;
                     ++yb;
                 }
-                DrawPixel(xf, yf, del);
-                DrawPixel(xb, yb, del);
+                DrawPixel(xf, yf, clr, del);
+                DrawPixel(xb, yb, clr, del);
             }
         }
 
-        static public bool DrawLine(int x0, int y0, int x1, int y1, bool del = false)
+        static public bool DrawLine(int x0, int y0, int x1, int y1, Color clr, bool del = false)
         {
 
             if (x0 > x1)
@@ -512,12 +512,12 @@ namespace cg_proj2
             {
                 if (dy > dx)
                 {
-                    SymmetricLineNNE(x0, y0, x1, y1, del); // not ok
+                    SymmetricLineNNE(x0, y0, x1, y1, clr, del); // not ok
                     return true;
                 }
                 else
                 {
-                    SymmetricLineENE(x0, y0, x1, y1, del); // ok
+                    SymmetricLineENE(x0, y0, x1, y1, clr, del); // ok
                     return true;
                 }
             }
@@ -525,12 +525,12 @@ namespace cg_proj2
             {
                 if (dy > -dx)
                 {
-                    SymmetricLineESE(x0, y0, x1, y1, del); // not ok
+                    SymmetricLineESE(x0, y0, x1, y1, clr, del); // not ok
                     return true;
                 }
                 else
                 {
-                    SymmetricLineSSE(x0, y0, x1, y1, del); // not ok
+                    SymmetricLineSSE(x0, y0, x1, y1, clr, del); // not ok
                     return true;
 
                 }
@@ -538,21 +538,21 @@ namespace cg_proj2
 
         }
 
-        static public void MidpointCircle(int R, int offestX, int offsetY, bool del = false)
+        static public void MidpointCircle(int R, int offestX, int offsetY, Color clr, bool del = false)
         {
             int dE = 3;
             int dSE = 5 - 2 * R;
             int d = 1 - R;
             int x = 0;
             int y = R;
-            DrawPixel(x + offestX, y + offsetY, del);
-            DrawPixel(-x + offestX, y + offsetY, del);
-            DrawPixel(x + offestX, -y + offsetY, del);
-            DrawPixel(-x + offestX, -y + offsetY, del);
-            DrawPixel(y + offestX, x + offsetY, del);
-            DrawPixel(-y + offestX, x + offsetY, del);
-            DrawPixel(y + offestX, -x + offsetY, del);
-            DrawPixel(-y + offestX, -x + offsetY, del);
+            DrawPixel(x + offestX, y + offsetY, clr, del);
+            DrawPixel(-x + offestX, y + offsetY, clr, del);
+            DrawPixel(x + offestX, -y + offsetY, clr, del);
+            DrawPixel(-x + offestX, -y + offsetY, clr, del);
+            DrawPixel(y + offestX, x + offsetY, clr, del);
+            DrawPixel(-y + offestX, x + offsetY, clr, del);
+            DrawPixel(y + offestX, -x + offsetY, clr, del);
+            DrawPixel(-y + offestX, -x + offsetY, clr, del);
             while (y > x)
             {
                 if (d < 0)
@@ -569,14 +569,14 @@ namespace cg_proj2
                     --y;
                 }
                 ++x;
-                DrawPixel(x + offestX, y + offsetY, del);
-                DrawPixel(-x + offestX, y + offsetY, del);
-                DrawPixel(x + offestX, -y + offsetY, del);
-                DrawPixel(-x + offestX, -y + offsetY, del);
-                DrawPixel(y + offestX, x + offsetY, del);
-                DrawPixel(-y + offestX, x + offsetY, del);
-                DrawPixel(y + offestX, -x + offsetY, del);
-                DrawPixel(-y + offestX, -x + offsetY, del);
+                DrawPixel(x + offestX, y + offsetY, clr, del);
+                DrawPixel(-x + offestX, y + offsetY, clr, del);
+                DrawPixel(x + offestX, -y + offsetY, clr, del);
+                DrawPixel(-x + offestX, -y + offsetY, clr, del);
+                DrawPixel(y + offestX, x + offsetY, clr, del);
+                DrawPixel(-y + offestX, x + offsetY, clr, del);
+                DrawPixel(y + offestX, -x + offsetY, clr, del);
+                DrawPixel(-y + offestX, -x + offsetY, clr, del);
             }
         }
 
@@ -640,15 +640,15 @@ namespace cg_proj2
 
 
         // couldnt get this to work
-        static void DrawHalfCircle(int centerX, int centerY, int xdX, int xdY, int r)
+        static void DrawHalfCircle(int centerX, int centerY, int xdX, int xdY, int r, Color clr)
         {
             int d = 1 - r;
             int x = 0;
             int y = r;
-            if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX - x, centerY + y)) DrawPixel(centerX - x, centerY + y);
-            if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX - x, centerY - y)) DrawPixel(centerX - x, centerY - y);
-            if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX + x, centerY + y)) DrawPixel(centerX + x, centerY + y);
-            if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX + x, centerY - y)) DrawPixel(centerX + x, centerY - y);
+            if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX - x, centerY + y)) DrawPixel(centerX - x, centerY + y, clr);
+            if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX - x, centerY - y)) DrawPixel(centerX - x, centerY - y, clr);
+            if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX + x, centerY + y)) DrawPixel(centerX + x, centerY + y, clr);
+            if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX + x, centerY - y)) DrawPixel(centerX + x, centerY - y, clr);
 
             while (y > x)
             {
@@ -662,10 +662,10 @@ namespace cg_proj2
                     --y;
                 }
                 ++x;
-                if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX - x, centerY + y)) DrawPixel(centerX - x, centerY + y);
-                if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX - x, centerY - y)) DrawPixel(centerX - x, centerY - y);
-                if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX + x, centerY + y)) DrawPixel(centerX + x, centerY + y);
-                if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX + x, centerY - y)) DrawPixel(centerX + x, centerY - y);
+                if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX - x, centerY + y)) DrawPixel(centerX - x, centerY + y, clr);
+                if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX - x, centerY - y)) DrawPixel(centerX - x, centerY - y, clr);
+                if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX + x, centerY + y)) DrawPixel(centerX + x, centerY + y, clr);
+                if (Sign(centerX, centerY, centerX + xdX, centerY + xdY, centerX + x, centerY - y)) DrawPixel(centerX + x, centerY - y, clr);
 
             }
         }
@@ -710,13 +710,26 @@ namespace cg_proj2
                     movingShape = null;
                     return;
                 }
-                movingShape = FindClosestShape((int)e.GetPosition(i).X, (int)e.GetPosition(i).Y);
-                if (movingShape != null)
+                IShape xd = FindClosestShape((int)e.GetPosition(i).X, (int)e.GetPosition(i).Y);
+                if (rightClickMode == RightClickModes.Move)
                 {
-                    lastMode = mode;
-                    i.Cursor = Cursors.Hand;
-                    mode = Modes.Moving;
+                    movingShape = xd;
+                    if (movingShape != null)
+                    {
+                        lastMode = mode;
+                        i.Cursor = Cursors.Hand;
+                        mode = Modes.Moving;
+                    }
                 }
+                else if (rightClickMode == RightClickModes.Colour)
+                {
+                    if (xd == null)
+                    {
+                        return;
+                    }
+                    xd.ReColour(color);
+                }
+
             }
         }
 
@@ -759,13 +772,12 @@ namespace cg_proj2
         {
             foreach (IShape shape in shapes)
             {
+                shape.DeleteShape();
                 shape.DrawShape();
             }
         }
 
-
-
-        private static void FloodFill(int x, int y, bool del = false)
+        private static void FloodFill(int x, int y, Color clr, bool del = false)
         {
             if (x < 0 || x >= actualWidth) return;
             if (y < 0 || y >= actualHeight) return;
@@ -773,11 +785,11 @@ namespace cg_proj2
             {
                 if (MyGetPixel(x, y) != 0)
                 {
-                    DrawPixel(x, y, del);
-                    FloodFill(x + 1, y, del);
-                    FloodFill(x, y + 1, del);
-                    FloodFill(x - 1, y, del);
-                    FloodFill(x, y - 1, del);
+                    DrawPixel(x, y, clr, del);
+                    FloodFill(x + 1, y, clr, del);
+                    FloodFill(x, y + 1, clr, del);
+                    FloodFill(x - 1, y, clr, del);
+                    FloodFill(x, y - 1, clr, del);
                 }
             }
             else
@@ -785,17 +797,17 @@ namespace cg_proj2
                 //bool cond = FindClosestShape(x, y) is Brush ? true : false;
                 if (MyGetPixel(x, y) == 0)
                 {
-                    DrawPixel(x, y);
-                    FloodFill(x + 1, y);
-                    FloodFill(x, y + 1);
-                    FloodFill(x - 1, y);
-                    FloodFill(x, y - 1);
+                    DrawPixel(x, y, clr);
+                    FloodFill(x + 1, y, clr);
+                    FloodFill(x, y + 1, clr);
+                    FloodFill(x - 1, y, clr);
+                    FloodFill(x, y - 1, clr);
                 }
 
             }
         }
 
-        public static void DrawBrush(int x, int y, bool del = false)
+        public static void DrawBrush(int x, int y, Color clr, bool del = false)
         {
             if (x + brushThickness > actualWidth || x - brushThickness < 0 ||
                 y + brushThickness > actualHeight || y - brushThickness < 0)
@@ -804,8 +816,8 @@ namespace cg_proj2
                 i.Cursor = Cursors.Arrow;
                 return;
             }
-            MidpointCircle(brushThickness, x, y, del);
-            FloodFill(x, y, del);
+            MidpointCircle(brushThickness, x, y, clr, del);
+            FloodFill(x, y, clr, del);
             shapes.Add(new Brush(brushThickness, x, y));
         }
 
@@ -814,11 +826,6 @@ namespace cg_proj2
         {
             string str = "XD";
             MessageBox.Show(str, "Functionalities", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        private void imgContextMenu_ContextMenuOpening(object sender, ContextMenuEventArgs e)
-        {
-
         }
 
         // drawing mode menu
@@ -888,7 +895,7 @@ namespace cg_proj2
             {
                 var filename = op.FileName;
                 var json = System.IO.File.ReadAllText(filename);
-                MessageBox.Show(json);
+                //MessageBox.Show(json);
                 RemoveAllShapes();
                 try
                 {
@@ -931,8 +938,8 @@ namespace cg_proj2
         // colour
         private void MenuItem_Click_10(object sender, RoutedEventArgs e)
         {
-            //SetRightClickMode(RightClickModes.Colour);
-            MessageBox.Show("not implemented");
+            SetRightClickMode(RightClickModes.Colour);
+            //MessageBox.Show("not implemented");
         }
 
         private void SetRightClickMode(RightClickModes _mode)
@@ -945,6 +952,11 @@ namespace cg_proj2
         {
             color = (Color)colourPicker.SelectedColor;
             //MessageBox.Show(color.ToString());
+        }
+
+        private void MenuItem_Click_13(object sender, RoutedEventArgs e)
+        {
+            RedrawShapes();
         }
     }
 

@@ -8,6 +8,7 @@
         mc:Ignorable="d"
         Title="{Binding Path=Title}" 
         SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterScreen"
         Loaded="Window_Loaded"
         ResizeMode="NoResize">
 
@@ -23,9 +24,10 @@
                     <MenuItem Header="_Save" Click="MenuItem_Click_5"/>
                     <MenuItem Header="_Load" Click="MenuItem_Click_6"/>
                     <MenuItem Header="_Clear" Click="MenuItem_Click_3"/>
+                    <MenuItem Header="_Redraw" Click="MenuItem_Click_13"/>
                 </MenuItem>
                 <MenuItem Header="_Options" Height="20">
-                    <MenuItem Header="Drawing">
+                    <MenuItem Header="_Drawing">
                         <MenuItem Header="Draw _lines" Click="MenuItem_Click_1"/>
                         <MenuItem Header="Draw _circle" Click="MenuItem_Click_2"/>
                         <MenuItem Header="Draw _brush" Click="MenuItem_Click_7"/>
@@ -59,7 +61,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="Colour:" HorizontalAlignment="Right" Margin="5" VerticalAlignment="Center"/>
-                <xctk:ColorPicker Grid.Column="1" Name="colourPicker" SelectedColor="White" Margin="5 5 25 5" VerticalAlignment="Center" ShowStandardColors="False"
+                <xctk:ColorPicker Grid.Column="1" Name="colourPicker" SelectedColor="White" Margin="0 5 30 5" VerticalAlignment="Center" ShowStandardColors="False"
                                   UsingAlphaChannel="False" SelectedColorChanged="colourPicker_SelectedColorChanged" HorizontalAlignment="Stretch"/>
             </Grid>
         </Grid>

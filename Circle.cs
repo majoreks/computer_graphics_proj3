@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using System.Windows;
+using System.Windows.Media;
 
 namespace cg_proj2
 {
@@ -13,22 +14,24 @@ namespace cg_proj2
     {
         public int R { get; set; }
         public Point Centre { get; set; }
+        public Color ColorCircle { get; set; }
         private static bool changeRadius;
 
-        public Circle(int r, double x, double y)
+        public Circle(int r, double x, double y, Color color)
         {
             Centre = new Point(x, y);
             R = r;
+            this.ColorCircle = color;
         }
 
         public void DeleteShape()
         {
-            MainWindow.MidpointCircle(R, (int)Centre.X, (int)Centre.Y, true);
+            MainWindow.MidpointCircle(R, (int)Centre.X, (int)Centre.Y, ColorCircle, true);
         }
 
         public void DrawShape()
         {
-            MainWindow.MidpointCircle(R, (int)Centre.X, (int)Centre.Y);
+            MainWindow.MidpointCircle(R, (int)Centre.X, (int)Centre.Y, ColorCircle);
         }
 
         public bool WasClicked(int x, int y)
@@ -89,5 +92,15 @@ namespace cg_proj2
             return (Centre, R);
         }
 
+        public void ReColour(Color color)
+        {
+            if (color == ColorCircle)
+            {
+                return;
+            }
+            DeleteShape();
+            ColorCircle = color;
+            DrawShape();
+        }
     }
 }

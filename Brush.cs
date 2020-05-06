@@ -5,6 +5,7 @@ using System.Runtime.Remoting;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 
 namespace cg_proj2
 {
@@ -12,6 +13,7 @@ namespace cg_proj2
     {
         public int Thickness { get; set; }
         public Point BrushCentre { get; set; }
+        public Color ColorBrush { get; set; }
         public Brush(int thickness, int x, int y)
         {
             Thickness = thickness;
@@ -19,12 +21,12 @@ namespace cg_proj2
         }
         public void DeleteShape()
         {
-            MainWindow.DrawBrush((int)BrushCentre.X, (int)BrushCentre.Y, true);
+            MainWindow.DrawBrush((int)BrushCentre.X, (int)BrushCentre.Y, ColorBrush, true);
         }
 
         public void DrawShape()
         {
-            MainWindow.DrawBrush((int)BrushCentre.X, (int)BrushCentre.Y);
+            MainWindow.DrawBrush((int)BrushCentre.X, (int)BrushCentre.Y, ColorBrush);
         }
 
         public bool WasClicked(int x, int y)
@@ -53,6 +55,17 @@ namespace cg_proj2
             BrushCentre = new Point(x, y);
             DrawShape();
             return true;
+        }
+
+        public void ReColour(Color color)
+        {
+            if (color == ColorBrush)
+            {
+                return;
+            }
+            DeleteShape();
+            ColorBrush = color;
+            DrawShape();
         }
     }
 }

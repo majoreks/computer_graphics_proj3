@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using System.Windows;
+using System.Windows.Media;
 
 namespace cg_proj2
 {
@@ -13,21 +14,23 @@ namespace cg_proj2
     {
         public Point P0 { get; set; }
         public Point P1 { get; set; }
+        public Color ColorLine { get; set; }
         private static Point pLastClicked;
 
-        public Line(int x0, int y0, int x1, int y1)
+        public Line(int x0, int y0, int x1, int y1, Color color)
         {
             P0 = new Point(x0, y0);
             P1 = new Point(x1, y1);
+            this.ColorLine = color;
         }
         public void DeleteShape()
         {
-            MainWindow.DrawLine((int)P0.X, (int)P0.Y, (int)P1.X, (int)P1.Y, true);
+            MainWindow.DrawLine((int)P0.X, (int)P0.Y, (int)P1.X, (int)P1.Y, ColorLine, true);
         }
 
         public void DrawShape()
         {
-            MainWindow.DrawLine((int)P0.X, (int)P0.Y, (int)P1.X, (int)P1.Y);
+            MainWindow.DrawLine((int)P0.X, (int)P0.Y, (int)P1.X, (int)P1.Y, ColorLine);
         }
 
         public bool WasClicked(int x, int y)
@@ -72,5 +75,15 @@ namespace cg_proj2
             DrawShape();
         }
 
+        public void ReColour(Color color)
+        {
+            if (color == ColorLine)
+            {
+                return;
+            }
+            DeleteShape();
+            ColorLine = color;
+            DrawShape();
+        }
     }
 }

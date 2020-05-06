@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 using cg_proj2.enums;
 
 namespace cg_proj2
@@ -12,10 +13,12 @@ namespace cg_proj2
     {
         public List<Point> Vertices {get; set;}
         public Point InitialPoint { get; set; }
+        public Color ColorPoly { get; set; }
         private static int selectedVertexIndex;
-        public Polygon(int x, int y)
+        public Polygon(int x, int y, Color color)
         {
             InitialPoint = new Point(x, y);
+            this.ColorPoly = color;
             Vertices = new List<Point>();
             Vertices.Add(InitialPoint);
         }
@@ -35,12 +38,12 @@ namespace cg_proj2
                 if(len<=10)
                 {
                     Vertices.Add(InitialPoint);
-                    MainWindow.DrawLine((int)Vertices[count - 1].X, (int)Vertices[count - 1].Y, (int)InitialPoint.X, (int)InitialPoint.Y);
+                    MainWindow.DrawLine((int)Vertices[count - 1].X, (int)Vertices[count - 1].Y, (int)InitialPoint.X, (int)InitialPoint.Y, ColorPoly);
                     return true;
                 }
             }
             Vertices.Add(new Point(x, y));
-            MainWindow.DrawLine((int)Vertices[count - 1].X, (int)Vertices[count - 1].Y, x, y);
+            MainWindow.DrawLine((int)Vertices[count - 1].X, (int)Vertices[count - 1].Y, x, y, ColorPoly);
             return false;
         }
         public void DeleteShape()
@@ -49,7 +52,7 @@ namespace cg_proj2
             {
                 for (int i = 1; i < Vertices.Count; i++)
                 {
-                    MainWindow.DrawLine((int)Vertices[i - 1].X, (int)Vertices[i - 1].Y, (int)Vertices[i].X, (int)Vertices[i].Y, true);
+                    MainWindow.DrawLine((int)Vertices[i - 1].X, (int)Vertices[i - 1].Y, (int)Vertices[i].X, (int)Vertices[i].Y, ColorPoly, true);
                 }
             }
         }
@@ -61,7 +64,7 @@ namespace cg_proj2
                 //MessageBox.Show(Vertices.Count.ToString());
                 for(int i=1; i<Vertices.Count; i++)
                 {
-                    MainWindow.DrawLine((int)Vertices[i - 1].X, (int)Vertices[i - 1].Y, (int)Vertices[i].X, (int)Vertices[i].Y);
+                    MainWindow.DrawLine((int)Vertices[i - 1].X, (int)Vertices[i - 1].Y, (int)Vertices[i].X, (int)Vertices[i].Y, ColorPoly);
                 }
             }
         }
@@ -128,6 +131,17 @@ namespace cg_proj2
                 InitialPoint = tmp[0];
                 DrawShape();
             }
+        }
+
+        public void ReColour(Color color)
+        {
+            if (color == ColorPoly)
+            {
+                return;
+            }
+            DeleteShape();
+            ColorPoly = color;
+            DrawShape();
         }
     }
 }
