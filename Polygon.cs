@@ -14,11 +14,13 @@ namespace cg_proj2
         public List<Point> Vertices {get; set;}
         public Point InitialPoint { get; set; }
         public Color ColorPoly { get; set; }
+        public int PolyThickness { get; set; }
         private static int selectedVertexIndex;
-        public Polygon(int x, int y, Color color)
+        public Polygon(int x, int y, Color color, int _thickness)
         {
             InitialPoint = new Point(x, y);
             this.ColorPoly = color;
+            PolyThickness = _thickness;
             Vertices = new List<Point>();
             Vertices.Add(InitialPoint);
         }
@@ -38,12 +40,12 @@ namespace cg_proj2
                 if(len<=10)
                 {
                     Vertices.Add(InitialPoint);
-                    MainWindow.DrawLine((int)Vertices[count - 1].X, (int)Vertices[count - 1].Y, (int)InitialPoint.X, (int)InitialPoint.Y, ColorPoly);
+                    MainWindow.DrawLine((int)Vertices[count - 1].X, (int)Vertices[count - 1].Y, (int)InitialPoint.X, (int)InitialPoint.Y, PolyThickness, ColorPoly);
                     return true;
                 }
             }
             Vertices.Add(new Point(x, y));
-            MainWindow.DrawLine((int)Vertices[count - 1].X, (int)Vertices[count - 1].Y, x, y, ColorPoly);
+            MainWindow.DrawLine((int)Vertices[count - 1].X, (int)Vertices[count - 1].Y, x, y, PolyThickness, ColorPoly);
             return false;
         }
         public void DeleteShape()
@@ -52,7 +54,7 @@ namespace cg_proj2
             {
                 for (int i = 1; i < Vertices.Count; i++)
                 {
-                    MainWindow.DrawLine((int)Vertices[i - 1].X, (int)Vertices[i - 1].Y, (int)Vertices[i].X, (int)Vertices[i].Y, ColorPoly, true);
+                    MainWindow.DrawLine((int)Vertices[i - 1].X, (int)Vertices[i - 1].Y, (int)Vertices[i].X, (int)Vertices[i].Y, PolyThickness, ColorPoly, true);
                 }
             }
         }
@@ -64,7 +66,7 @@ namespace cg_proj2
                 //MessageBox.Show(Vertices.Count.ToString());
                 for(int i=1; i<Vertices.Count; i++)
                 {
-                    MainWindow.DrawLine((int)Vertices[i - 1].X, (int)Vertices[i - 1].Y, (int)Vertices[i].X, (int)Vertices[i].Y, ColorPoly);
+                    MainWindow.DrawLine((int)Vertices[i - 1].X, (int)Vertices[i - 1].Y, (int)Vertices[i].X, (int)Vertices[i].Y, PolyThickness, ColorPoly);
                 }
             }
         }
@@ -141,6 +143,13 @@ namespace cg_proj2
             }
             DeleteShape();
             ColorPoly = color;
+            DrawShape();
+        }
+
+        public void Resize(int _thickness)
+        {
+            DeleteShape();
+            PolyThickness = _thickness;
             DrawShape();
         }
     }

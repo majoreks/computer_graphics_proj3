@@ -21,12 +21,12 @@ namespace cg_proj2
         }
         public void DeleteShape()
         {
-            MainWindow.DrawBrush((int)BrushCentre.X, (int)BrushCentre.Y, ColorBrush, true);
+            //MainWindow.DrawBrush((int)BrushCentre.X, (int)BrushCentre.Y, ColorBrush, true);
         }
 
         public void DrawShape()
         {
-            MainWindow.DrawBrush((int)BrushCentre.X, (int)BrushCentre.Y, ColorBrush);
+            //MainWindow.DrawBrush((int)BrushCentre.X, (int)BrushCentre.Y, ColorBrush);
         }
 
         public bool WasClicked(int x, int y)
@@ -66,6 +66,11 @@ namespace cg_proj2
             DeleteShape();
             ColorBrush = color;
             DrawShape();
+        }
+
+        public void Resize(int _thickness)
+        {
+            throw new NotImplementedException();
         }
     }
 }

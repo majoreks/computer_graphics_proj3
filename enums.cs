@@ -19,6 +19,7 @@
     public enum RightClickModes
     {
         Move,
-        Colour
+        Colour,
+        Resize
     }
 }

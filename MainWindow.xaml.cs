@@ -18,6 +18,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using cg_proj2.enums;
+using System.Runtime.InteropServices;
 
 namespace cg_proj2
 {
@@ -45,19 +46,22 @@ namespace cg_proj2
         static Modes lastMode;
         static Polygon poly;
         static Color color;
-        private Test dataContext = new Test("CG_proj3", mode.ToString(), rightClickMode.ToString(), polyMode.ToString());
+        static int thickness;
+        static private Test dataContext = new Test("CG_proj3", mode.ToString(), rightClickMode.ToString(), polyMode.ToString(), 1);
         public class Test : INotifyPropertyChanged
         {
             private string title;
             private string rightClickMode;
             private string drawingMode;
             private string polyMoveMode;
-            public Test(string str, string drawingStr, string rightStr, string polyStr)
+            private int brushThickness;
+            public Test(string str, string drawingStr, string rightStr, string polyStr, int _brushThickness)
             {
                 title = str;
                 rightClickMode = rightStr;
                 drawingMode = drawingStr;
                 polyMoveMode = polyStr;
+                brushThickness = _brushThickness;
             }
             public string Title
             {
@@ -80,6 +84,12 @@ namespace cg_proj2
                 set { polyMoveMode = value; NotifyPropertyChanged("PolyMoveMode"); }
             }
 
+            public int BrushThickness
+            {
+                get { return brushThickness; }
+                set { brushThickness = value; }
+            }
+
             public event PropertyChangedEventHandler PropertyChanged;
             public void NotifyPropertyChanged(string propertyName)
             {
@@ -88,6 +98,46 @@ namespace cg_proj2
                     PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
                 }
             }
+
+            // write to console helper class
+
+            internal static class ConsoleAllocator
+            {
+                [DllImport(@"kernel32.dll", SetLastError = true)]
+                static extern bool AllocConsole();
+
+                [DllImport(@"kernel32.dll")]
+                static extern IntPtr GetConsoleWindow();
+
+                [DllImport(@"user32.dll")]
+                static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+                const int SwHide = 0;
+                const int SwShow = 5;
+
+
+                public static void ShowConsoleWindow()
+                {
+                    var handle = GetConsoleWindow();
+
+                    if (handle == IntPtr.Zero)
+                    {
+                        AllocConsole();
+                    }
+                    else
+                    {
+                        ShowWindow(handle, SwShow);
+                    }
+                }
+
+                public static void HideConsoleWindow()
+                {
+                    var handle = GetConsoleWindow();
+
+                    ShowWindow(handle, SwHide);
+                }
+            }
+
         }
         public MainWindow()
         {
@@ -97,9 +147,36 @@ namespace cg_proj2
             InitializeComponent();
         }
 
-        private void SetTitle(string str)
+        static private bool[,] FillShape(int n)
         {
-            this.dataContext.Title = str;
+            int cond;
+            bool[,] shape = new bool[n, n];
+            int mid = (int)Math.Floor((double)n / 2);
+            for (int x = 0; x < n; x++)
+            {
+                cond = Math.Abs(x - mid) - 1;
+                for (int y = 0; y < n; y++)
+                {
+                    if (y >= cond && y <= n - cond - 1)
+                    {
+                        //Console.Write("# ");
+                        shape[x, y] = true;
+                    }
+                    else
+                    {
+                        //Console.Write("O ");
+                        shape[x, y] = false;
+                    }
+                }
+
+                //Console.Write("\n");
+            }
+            return shape;
+        }
+
+        static private void SetTitle(string str)
+        {
+            dataContext.Title = str;
         }
         static public void DrawPixel(int x, int y, Color clr, bool del = false)
         {
@@ -108,7 +185,7 @@ namespace cg_proj2
             try
             {
                 writeableBitmap.Lock();
-
+                //MessageBox.Show("xd");
                 unsafe
                 {
                     IntPtr pBackBuffer = writeableBitmap.BackBuffer;
@@ -134,6 +211,61 @@ namespace cg_proj2
                 }
 
                 writeableBitmap.AddDirtyRect(new Int32Rect(column, row, 1, 1));
+            }
+            finally
+            {
+                writeableBitmap.Unlock();
+            }
+        }
+
+        static public void DrawPixel(int _x, int _y, Color clr, bool[,] shape, bool del = false)
+        {
+            byte r, g, b;
+            if (del)
+            {
+                r = 0; // R
+                g = 0; // G
+                b = 0; // B
+            }
+            else
+            {
+                r = clr.R; // R
+                g = clr.G; // G
+                b = clr.B; // B
+            }
+            int n = (int)Math.Sqrt(shape.Length);
+            int mid = (int)Math.Floor((double)n / 2);
+            //int column = _x;
+            //int row = _y;
+            int x, y;
+            try
+            {
+                writeableBitmap.Lock();
+                //MessageBox.Show(n.ToString());
+                unsafe
+                {
+                    IntPtr pBackBuffer = writeableBitmap.BackBuffer;
+                    byte* pBuff = (byte*)pBackBuffer.ToPointer();
+                    for (int i = 0; i < n; i++)
+                    {
+                        x = _x - (mid - i);
+                        for (int j = 0; j < n; j++)
+                        {
+                            y = _y - (mid - j);
+                            if (shape[i, j])
+                            {
+                                pBuff[4 * x + (y * writeableBitmap.BackBufferStride)] = b;
+                                pBuff[4 * x + (y * writeableBitmap.BackBufferStride) + 1] = g;
+                                pBuff[4 * x + (y * writeableBitmap.BackBufferStride) + 2] = r;
+                                //pBuff[4 * x + (y * writeableBitmap.BackBufferStride) + 3] = 255;
+
+                            }
+                        }
+                    }
+
+                }
+
+                writeableBitmap.AddDirtyRect(new Int32Rect(0, 0, actualWidth, actualHeight));
             }
             finally
             {
@@ -170,7 +302,7 @@ namespace cg_proj2
         {
 
         }
-        static void i_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void i_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             int x, y;
             x = (int)e.GetPosition(i).X;
@@ -191,7 +323,6 @@ namespace cg_proj2
                     mode = lastMode;
                     i.Cursor = Cursors.Arrow;
                     movingShape = null;
-                    return;
                 }
                 else if (movingShape is Line)
                 {
@@ -200,7 +331,6 @@ namespace cg_proj2
                     mode = lastMode;
                     i.Cursor = Cursors.Arrow;
                     movingShape = null;
-                    return;
                 }
                 else if (movingShape is Brush)
                 {
@@ -209,7 +339,6 @@ namespace cg_proj2
                     mode = lastMode;
                     i.Cursor = Cursors.Arrow;
                     movingShape = null;
-                    return;
                 }
                 else if (movingShape is Polygon)
                 {
@@ -218,9 +347,11 @@ namespace cg_proj2
                     i.Cursor = Cursors.Arrow;
                     mode = lastMode;
                     movingShape = null;
-                    return;
                 }
-
+                if (shapes.Count > 1)
+                {
+                    RedrawShapes();
+                }
             }
             else if (mode == Modes.DrawLines)
             {
@@ -237,8 +368,8 @@ namespace cg_proj2
                     p2.X = x;
                     p2.Y = y;
                     counter = 0;
-                    DrawLine((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, color);
-                    shapes.Add(new Line((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, color));
+                    DrawLine((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, thickness, color);
+                    shapes.Add(new Line((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, color, thickness));
                     p1 = new Point();
                     p2 = new Point();
                     i.Cursor = Cursors.Arrow;
@@ -271,48 +402,11 @@ namespace cg_proj2
                         p2 = new Point();
                         return;
                     }
-                    MidpointCircle((int)len, (int)p1.X, (int)p1.Y, color);
-                    shapes.Add(new Circle((int)len, (int)p1.X, (int)p1.Y, color));
+                    MidpointCircle((int)len, (int)p1.X, (int)p1.Y, color, thickness);
+                    shapes.Add(new Circle((int)len, (int)p1.X, (int)p1.Y, color, thickness));
                     p1 = new Point();
                     p2 = new Point();
                     i.Cursor = Cursors.Arrow;
-                }
-            }
-            else if (mode == Modes.DrawElipse)
-            {
-
-                if (counter == 0)
-                {
-                    p1.X = x;
-                    p1.Y = y;
-                    counter++;
-                }
-                else if (counter == 1)
-                {
-
-                    p2.X = x;
-                    p2.Y = y;
-                    counter++;
-                }
-                else if (counter == 2)
-                {
-                    Point p3 = new Point(x, y);
-                    int R = (int)Point.Subtract(p3, p2).Length;
-                    int Vx = (int)p2.X - (int)p1.X;
-                    int Vy = (int)p2.Y - (int)p1.Y;
-                    int Vxp = Vy;
-                    int Vyp = -Vx;
-                    double len = Math.Sqrt(Math.Pow(Vy, 2) + Math.Pow(Vx, 2));
-                    double xdX = Vxp / len * R;
-                    double xdY = Vyp / len * R;
-                    //MessageBox.Show($"{xdX}, {xdY}");
-                    counter = 0;
-                    if (DrawLine((int)p1.X + (int)xdX, (int)p1.Y + (int)xdY, (int)p2.X + (int)xdX, (int)p2.Y + (int)xdY, color) &&
-                        DrawLine((int)p1.X - (int)xdX, (int)p1.Y - (int)xdY, (int)p2.X - (int)xdX, (int)p2.Y - (int)xdY, color)) { }
-                    else
-                    {
-                        MessageBox.Show("Elipse out of bounds");
-                    }
                 }
             }
             else if (mode == Modes.DrawPolygons)
@@ -321,7 +415,7 @@ namespace cg_proj2
                 if (counter == 0)
                 {
                     i.Cursor = Cursors.Cross;
-                    poly = new Polygon(x, y, color);
+                    poly = new Polygon(x, y, color, thickness);
                     shapes.Add(poly);
                     counter++;
                 }
@@ -339,7 +433,7 @@ namespace cg_proj2
             }
             else if (mode == Modes.DrawBrush)
             {
-                DrawBrush(x, y, color);
+                //DrawBrush(x, y, color);
                 //mouseDown = true;
             }
         }
@@ -350,8 +444,8 @@ namespace cg_proj2
             RenderOptions.SetBitmapScalingMode(i, BitmapScalingMode.NearestNeighbor);
             RenderOptions.SetEdgeMode(i, EdgeMode.Aliased);
             writeableBitmap = new WriteableBitmap(
-                800,
-                800,
+                900,
+                900,
                 96,
                 96,
                 PixelFormats.Bgr32,
@@ -369,7 +463,7 @@ namespace cg_proj2
             actualWidth = (int)writeableBitmap.Width;
         }
 
-        static void SymmetricLineENE(int x1, int y1, int x2, int y2, Color clr, bool del)
+        static void SymmetricLineENE(int x1, int y1, int x2, int y2, bool[,] shape, Color clr, bool del)
         {
             //MessageBox.Show($"P1: {x1}, {y1}; P2: {x2}, {y2}");
             int dx = x2 - x1;
@@ -379,8 +473,8 @@ namespace cg_proj2
             int dNE = 2 * (dy - dx);
             int xf = x1, yf = y1;
             int xb = x2, yb = y2;
-            DrawPixel(xf, yf, clr, del);
-            DrawPixel(xb, yb, clr, del);
+            DrawPixel(xf, yf, clr, shape, del);
+            DrawPixel(xb, yb, clr, shape, del);
             while (xf < xb)
             {
                 ++xf;
@@ -392,12 +486,12 @@ namespace cg_proj2
                     ++yf;
                     --yb;
                 }
-                DrawPixel(xf, yf, clr, del);
-                DrawPixel(xb, yb, clr, del);
+                DrawPixel(xf, yf, clr, shape, del);
+                DrawPixel(xb, yb, clr, shape, del);
             }
         }
 
-        static void SymmetricLineNNE(int x1, int y1, int x2, int y2, Color clr, bool del)
+        static void SymmetricLineNNE(int x1, int y1, int x2, int y2, bool[,] shape, Color clr, bool del)
         {
             //MessageBox.Show($"P1: {x1}, {y1}; P2: {x2}, {y2}");
             int dx = x2 - x1;
@@ -407,8 +501,8 @@ namespace cg_proj2
             int dNE = 2 * (dx - dy);
             int xf = x1, yf = y1;
             int xb = x2, yb = y2;
-            DrawPixel(xf, yf, clr, del);
-            DrawPixel(xb, yb, clr, del);
+            DrawPixel(xf, yf, clr, shape, del);
+            DrawPixel(xb, yb, clr, shape, del);
             while (yf < yb)
             {
 
@@ -427,12 +521,12 @@ namespace cg_proj2
                     ++xf;
                     --xb;
                 }
-                DrawPixel(xf, yf, clr, del);
-                DrawPixel(xb, yb, clr, del);
+                DrawPixel(xf, yf, clr, shape, del);
+                DrawPixel(xb, yb, clr, shape, del);
             }
         }
 
-        static void SymmetricLineESE(int x1, int y1, int x2, int y2, Color clr, bool del)
+        static void SymmetricLineESE(int x1, int y1, int x2, int y2, bool[,] shape, Color clr, bool del)
         {
             //MessageBox.Show($"P1: {x1}, {y1}; P2: {x2}, {y2}");
             int dx = x2 - x1;
@@ -442,8 +536,8 @@ namespace cg_proj2
             int dSE = 2 * (dy + dx);
             int xf = x1, yf = y1;
             int xb = x2, yb = y2;
-            DrawPixel(xf, yf, clr, del);
-            DrawPixel(xb, yb, clr, del);
+            DrawPixel(xf, yf, clr, shape, del);
+            DrawPixel(xb, yb, clr, shape, del);
             while (xf < xb)
             {
                 ++xf;
@@ -455,12 +549,12 @@ namespace cg_proj2
                     --yf;
                     ++yb;
                 }
-                DrawPixel(xf, yf, clr, del);
-                DrawPixel(xb, yb, clr, del);
+                DrawPixel(xf, yf, clr, shape, del);
+                DrawPixel(xb, yb, clr, shape, del);
             }
         }
 
-        static void SymmetricLineSSE(int x1, int y1, int x2, int y2, Color clr, bool del)
+        static void SymmetricLineSSE(int x1, int y1, int x2, int y2, bool[,] shape, Color clr, bool del)
         {
             //MessageBox.Show($"P1: {x1}, {y1}; P2: {x2}, {y2}");
             int dx = x2 - x1;
@@ -470,8 +564,8 @@ namespace cg_proj2
             int dSE = 2 * (dy + dx);
             int xf = x1, yf = y1;
             int xb = x2, yb = y2;
-            DrawPixel(xf, yf, clr, del);
-            DrawPixel(xb, yb, clr, del);
+            DrawPixel(xf, yf, clr, shape, del);
+            DrawPixel(xb, yb, clr, shape, del);
             while (yf > yb)
             {
 
@@ -489,14 +583,14 @@ namespace cg_proj2
                     --yf;
                     ++yb;
                 }
-                DrawPixel(xf, yf, clr, del);
-                DrawPixel(xb, yb, clr, del);
+                DrawPixel(xf, yf, clr, shape, del);
+                DrawPixel(xb, yb, clr, shape, del);
             }
         }
 
-        static public bool DrawLine(int x0, int y0, int x1, int y1, Color clr, bool del = false)
+        static public bool DrawLine(int x0, int y0, int x1, int y1, int _thickness, Color clr, bool del = false)
         {
-
+            bool[,] shape = FillShape(_thickness);
             if (x0 > x1)
             {
                 int tempx = x0;
@@ -512,12 +606,12 @@ namespace cg_proj2
             {
                 if (dy > dx)
                 {
-                    SymmetricLineNNE(x0, y0, x1, y1, clr, del); // not ok
+                    SymmetricLineNNE(x0, y0, x1, y1, shape, clr, del); // not ok
                     return true;
                 }
                 else
                 {
-                    SymmetricLineENE(x0, y0, x1, y1, clr, del); // ok
+                    SymmetricLineENE(x0, y0, x1, y1, shape, clr, del); // ok
                     return true;
                 }
             }
@@ -525,12 +619,12 @@ namespace cg_proj2
             {
                 if (dy > -dx)
                 {
-                    SymmetricLineESE(x0, y0, x1, y1, clr, del); // not ok
+                    SymmetricLineESE(x0, y0, x1, y1, shape, clr, del); // not ok
                     return true;
                 }
                 else
                 {
-                    SymmetricLineSSE(x0, y0, x1, y1, clr, del); // not ok
+                    SymmetricLineSSE(x0, y0, x1, y1, shape, clr, del); // not ok
                     return true;
 
                 }
@@ -538,21 +632,22 @@ namespace cg_proj2
 
         }
 
-        static public void MidpointCircle(int R, int offestX, int offsetY, Color clr, bool del = false)
+        static public void MidpointCircle(int R, int offestX, int offsetY, Color clr, int _thickness, bool del = false)
         {
             int dE = 3;
             int dSE = 5 - 2 * R;
             int d = 1 - R;
             int x = 0;
             int y = R;
-            DrawPixel(x + offestX, y + offsetY, clr, del);
-            DrawPixel(-x + offestX, y + offsetY, clr, del);
-            DrawPixel(x + offestX, -y + offsetY, clr, del);
-            DrawPixel(-x + offestX, -y + offsetY, clr, del);
-            DrawPixel(y + offestX, x + offsetY, clr, del);
-            DrawPixel(-y + offestX, x + offsetY, clr, del);
-            DrawPixel(y + offestX, -x + offsetY, clr, del);
-            DrawPixel(-y + offestX, -x + offsetY, clr, del);
+            bool[,] shape = FillShape(_thickness);
+            DrawPixel(x + offestX, y + offsetY, clr, shape, del);
+            DrawPixel(-x + offestX, y + offsetY, clr, shape, del);
+            DrawPixel(x + offestX, -y + offsetY, clr, shape, del);
+            DrawPixel(-x + offestX, -y + offsetY, clr, shape, del);
+            DrawPixel(y + offestX, x + offsetY, clr, shape, del);
+            DrawPixel(-y + offestX, x + offsetY, clr, shape, del);
+            DrawPixel(y + offestX, -x + offsetY, clr, shape, del);
+            DrawPixel(-y + offestX, -x + offsetY, clr, shape, del);
             while (y > x)
             {
                 if (d < 0)
@@ -569,14 +664,14 @@ namespace cg_proj2
                     --y;
                 }
                 ++x;
-                DrawPixel(x + offestX, y + offsetY, clr, del);
-                DrawPixel(-x + offestX, y + offsetY, clr, del);
-                DrawPixel(x + offestX, -y + offsetY, clr, del);
-                DrawPixel(-x + offestX, -y + offsetY, clr, del);
-                DrawPixel(y + offestX, x + offsetY, clr, del);
-                DrawPixel(-y + offestX, x + offsetY, clr, del);
-                DrawPixel(y + offestX, -x + offsetY, clr, del);
-                DrawPixel(-y + offestX, -x + offsetY, clr, del);
+                DrawPixel(x + offestX, y + offsetY, clr, shape, del);
+                DrawPixel(-x + offestX, y + offsetY, clr, shape, del);
+                DrawPixel(x + offestX, -y + offsetY, clr, shape, del);
+                DrawPixel(-x + offestX, -y + offsetY, clr, shape, del);
+                DrawPixel(y + offestX, x + offsetY, clr, shape, del);
+                DrawPixel(-y + offestX, x + offsetY, clr, shape, del);
+                DrawPixel(y + offestX, -x + offsetY, clr, shape, del);
+                DrawPixel(-y + offestX, -x + offsetY, clr, shape, del);
             }
         }
 
@@ -701,7 +796,10 @@ namespace cg_proj2
                     {
                         shapes[shapes.Count - 1].DeleteShape();
                     }
-                    return;
+                    if (shapes.Count > 1)
+                    {
+                        RedrawShapes();
+                    }
                 }
                 if (mode == Modes.Moving)
                 {
@@ -720,6 +818,10 @@ namespace cg_proj2
                         i.Cursor = Cursors.Hand;
                         mode = Modes.Moving;
                     }
+                    //if (shapes.Count>0)
+                    //{
+                    //    RedrawShapes();
+                    //}
                 }
                 else if (rightClickMode == RightClickModes.Colour)
                 {
@@ -729,7 +831,18 @@ namespace cg_proj2
                     }
                     xd.ReColour(color);
                 }
-
+                else if (rightClickMode == RightClickModes.Resize)
+                {
+                    if (xd == null)
+                    {
+                        return;
+                    }
+                    xd.Resize(thickness);
+                    if (shapes.Count>1)
+                    {
+                        RedrawShapes();
+                    }
+                }
             }
         }
 
@@ -807,19 +920,19 @@ namespace cg_proj2
             }
         }
 
-        public static void DrawBrush(int x, int y, Color clr, bool del = false)
-        {
-            if (x + brushThickness > actualWidth || x - brushThickness < 0 ||
-                y + brushThickness > actualHeight || y - brushThickness < 0)
-            {
-                MessageBox.Show("Brush out of bounds");
-                i.Cursor = Cursors.Arrow;
-                return;
-            }
-            MidpointCircle(brushThickness, x, y, clr, del);
-            FloodFill(x, y, clr, del);
-            shapes.Add(new Brush(brushThickness, x, y));
-        }
+        //public static void DrawBrush(int x, int y, Color clr, bool del = false)
+        //{
+        //    if (x + brushThickness > actualWidth || x - brushThickness < 0 ||
+        //        y + brushThickness > actualHeight || y - brushThickness < 0)
+        //    {
+        //        MessageBox.Show("Brush out of bounds");
+        //        i.Cursor = Cursors.Arrow;
+        //        return;
+        //    }
+        //    MidpointCircle(brushThickness, x, y, clr, del);
+        //    FloodFill(x, y, clr, del);
+        //    shapes.Add(new Brush(brushThickness, x, y));
+        //}
 
         // info IMPLEMENT
         private void MenuItem_Click_8(object sender, RoutedEventArgs e)
@@ -956,7 +1069,32 @@ namespace cg_proj2
 
         private void MenuItem_Click_13(object sender, RoutedEventArgs e)
         {
-            RedrawShapes();
+            try
+            {
+                RedrawShapes();
+            }
+            catch
+            {
+                MessageBox.Show(e.ToString() + " Unexpected error while redrawing shapes");
+            }
+        }
+
+        private void IntegerUpDown_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            thickness = dataContext.BrushThickness;
+        }
+
+        private void MenuItem_Click_14(object sender, RoutedEventArgs e)
+        {
+            SetRightClickMode(RightClickModes.Resize);
+        }
+
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            //MessageBox.Show(sender.ToString());
+            //MainWindow xd = sender as MainWindow;
+            //SetTitle($"{xd.ActualWidth}, {xd.ActualHeight}");
+
         }
     }
 

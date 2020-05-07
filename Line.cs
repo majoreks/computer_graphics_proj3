@@ -15,22 +15,24 @@ namespace cg_proj2
         public Point P0 { get; set; }
         public Point P1 { get; set; }
         public Color ColorLine { get; set; }
+        public int LineThickness { get; set; }
         private static Point pLastClicked;
-
-        public Line(int x0, int y0, int x1, int y1, Color color)
+        //private bool[,] shape;
+        public Line(int x0, int y0, int x1, int y1, Color color, int _thickness)
         {
             P0 = new Point(x0, y0);
             P1 = new Point(x1, y1);
             this.ColorLine = color;
+            LineThickness = _thickness;
         }
         public void DeleteShape()
         {
-            MainWindow.DrawLine((int)P0.X, (int)P0.Y, (int)P1.X, (int)P1.Y, ColorLine, true);
+            MainWindow.DrawLine((int)P0.X, (int)P0.Y, (int)P1.X, (int)P1.Y, LineThickness, ColorLine, true);
         }
 
         public void DrawShape()
         {
-            MainWindow.DrawLine((int)P0.X, (int)P0.Y, (int)P1.X, (int)P1.Y, ColorLine);
+            MainWindow.DrawLine((int)P0.X, (int)P0.Y, (int)P1.X, (int)P1.Y, LineThickness, ColorLine);
         }
 
         public bool WasClicked(int x, int y)
@@ -39,7 +41,7 @@ namespace cg_proj2
             int Vy = Math.Abs((int)y - (int)P0.Y);
             double len = Math.Sqrt(Math.Pow(Vy, 2) + Math.Pow(Vx, 2));
             //MessageBox.Show(len.ToString());
-            if (len <= 10)
+            if (len <= 10 + LineThickness)
             {
                 pLastClicked = P0;
                 return true;
@@ -49,7 +51,7 @@ namespace cg_proj2
                 Vx = Math.Abs((int)x - (int)P1.X);
                 Vy = Math.Abs((int)y - (int)P1.Y);
                 len = Math.Sqrt(Math.Pow(Vy, 2) + Math.Pow(Vx, 2));
-                if (len <= 10)
+                if (len <= 10 + LineThickness)
                 {
                     pLastClicked = P1;
                     return true;
@@ -83,6 +85,13 @@ namespace cg_proj2
             }
             DeleteShape();
             ColorLine = color;
+            DrawShape();
+        }
+
+        public void Resize(int _thickness)
+        {
+            DeleteShape();
+            LineThickness = _thickness;
             DrawShape();
         }
     }

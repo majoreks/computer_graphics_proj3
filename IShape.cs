@@ -13,20 +13,24 @@ namespace cg_proj2
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Circle), "R")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Circle), "Centre")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Circle), "ColorCircle")]
+    [JsonSubtypes.KnownSubTypeWithProperty(typeof(Circle), "ThicknessCircle")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Brush), "Thickness")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Brush), "BrushCentre")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Brush), "ColorBrush")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Line), "P0")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Line), "P1")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Line), "ColorLine")]
+    [JsonSubtypes.KnownSubTypeWithProperty(typeof(Line), "LineThickness")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "Vertices")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "InitialPoint")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "ColorPoly")]
+    [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "PolyThickness")]
     public interface IShape
     {
         void DeleteShape();
         void DrawShape();
         bool WasClicked(int x, int y);
         void ReColour(Color color);
+        void Resize(int _thickness);
     }
 }
