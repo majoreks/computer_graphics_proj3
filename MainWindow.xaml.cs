@@ -19,6 +19,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using cg_proj2.enums;
 using System.Runtime.InteropServices;
+using System.Drawing.Imaging;
 
 namespace cg_proj2
 {
@@ -29,8 +30,9 @@ namespace cg_proj2
     {
         private static int BRUSH_THICKNESS = 6;
 
+        static WriteableBitmap writeable;
         static int brushThickness = BRUSH_THICKNESS;
-        static WriteableBitmap writeableBitmap;
+        //static WriteableBitmap writeableBitmap;
         //static Window w;
         static Image i;
         static int counter = 0;
@@ -43,11 +45,13 @@ namespace cg_proj2
         static Modes mode = Modes.DrawLines;
         static PolyMoveModes polyMode = PolyMoveModes.ByVertex;
         static RightClickModes rightClickMode = RightClickModes.Move;
+        static RightClickModes lastRightClickMode;
+        static PolyLineResize polyResize = PolyLineResize.Whole;
         static Modes lastMode;
         static Polygon poly;
         static Color color;
         static int thickness;
-        static private Test dataContext = new Test("CG_proj3", mode.ToString(), rightClickMode.ToString(), polyMode.ToString(), 1);
+        static private Test dataContext = new Test("CG_proj3", mode.ToString(), rightClickMode.ToString(), polyMode.ToString(), 1, polyResize.ToString());
         public class Test : INotifyPropertyChanged
         {
             private string title;
@@ -55,13 +59,15 @@ namespace cg_proj2
             private string drawingMode;
             private string polyMoveMode;
             private int brushThickness;
-            public Test(string str, string drawingStr, string rightStr, string polyStr, int _brushThickness)
+            private string polyResize;
+            public Test(string str, string drawingStr, string rightStr, string polyStr, int _brushThickness, string xd)
             {
                 title = str;
                 rightClickMode = rightStr;
                 drawingMode = drawingStr;
                 polyMoveMode = polyStr;
                 brushThickness = _brushThickness;
+                polyResize = xd;
             }
             public string Title
             {
@@ -88,6 +94,13 @@ namespace cg_proj2
             {
                 get { return brushThickness; }
                 set { brushThickness = value; }
+            }
+
+            public string PolyResize
+            {
+                get { return $"Poly resize mode: {polyResize}"; }
+                set { polyResize = value; NotifyPropertyChanged("PolyResize"); }
+
             }
 
             public event PropertyChangedEventHandler PropertyChanged;
@@ -184,13 +197,13 @@ namespace cg_proj2
             int row = y;
             try
             {
-                writeableBitmap.Lock();
+                //writeableBitmap.Lock();
                 //MessageBox.Show("xd");
                 unsafe
                 {
-                    IntPtr pBackBuffer = writeableBitmap.BackBuffer;
+                    IntPtr pBackBuffer = writeable.BackBuffer;
 
-                    pBackBuffer += row * writeableBitmap.BackBufferStride;
+                    pBackBuffer += row * writeable.BackBufferStride;
                     pBackBuffer += column * 4;
                     int color_data;
                     if (del)
@@ -210,11 +223,11 @@ namespace cg_proj2
                     *((int*)pBackBuffer) = color_data;
                 }
 
-                writeableBitmap.AddDirtyRect(new Int32Rect(column, row, 1, 1));
+                //writeableBitmap.AddDirtyRect(new Int32Rect(column, row, 1, 1));
             }
             finally
             {
-                writeableBitmap.Unlock();
+                //writeableBitmap.Unlock();
             }
         }
 
@@ -240,11 +253,11 @@ namespace cg_proj2
             int x, y;
             try
             {
-                writeableBitmap.Lock();
+                //writeableBitmap.Lock();
                 //MessageBox.Show(n.ToString());
                 unsafe
                 {
-                    IntPtr pBackBuffer = writeableBitmap.BackBuffer;
+                    IntPtr pBackBuffer = writeable.BackBuffer;
                     byte* pBuff = (byte*)pBackBuffer.ToPointer();
                     for (int i = 0; i < n; i++)
                     {
@@ -254,9 +267,9 @@ namespace cg_proj2
                             y = _y - (mid - j);
                             if (shape[i, j])
                             {
-                                pBuff[4 * x + (y * writeableBitmap.BackBufferStride)] = b;
-                                pBuff[4 * x + (y * writeableBitmap.BackBufferStride) + 1] = g;
-                                pBuff[4 * x + (y * writeableBitmap.BackBufferStride) + 2] = r;
+                                pBuff[4 * x + (y * writeable.BackBufferStride)] = b;
+                                pBuff[4 * x + (y * writeable.BackBufferStride) + 1] = g;
+                                pBuff[4 * x + (y * writeable.BackBufferStride) + 2] = r;
                                 //pBuff[4 * x + (y * writeableBitmap.BackBufferStride) + 3] = 255;
 
                             }
@@ -265,11 +278,11 @@ namespace cg_proj2
 
                 }
 
-                writeableBitmap.AddDirtyRect(new Int32Rect(0, 0, actualWidth, actualHeight));
+                //writeable.AddDirtyRect(new Int32Rect(0, 0, actualWidth, actualHeight));
             }
             finally
             {
-                writeableBitmap.Unlock();
+                //writeableBitmap.Unlock();
             }
         }
 
@@ -279,13 +292,13 @@ namespace cg_proj2
             int row = y;
             try
             {
-                writeableBitmap.Lock();
+                writeable.Lock();
 
                 unsafe
                 {
-                    IntPtr pBackBuffer = writeableBitmap.BackBuffer;
+                    IntPtr pBackBuffer = writeable.BackBuffer;
 
-                    pBackBuffer += row * writeableBitmap.BackBufferStride;
+                    pBackBuffer += row * writeable.BackBufferStride;
                     pBackBuffer += column * 4;
                     //*((int*)pBackBuffer)
                     //MessageBox.Show((*((int*)pBackBuffer)).ToString());
@@ -295,7 +308,7 @@ namespace cg_proj2
             }
             finally
             {
-                writeableBitmap.Unlock();
+                writeable.Unlock();
             }
         }
         static void i_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
@@ -431,19 +444,37 @@ namespace cg_proj2
                 }
 
             }
-            else if (mode == Modes.DrawBrush)
+            else if (mode == Modes.Clipping)
             {
-                //DrawBrush(x, y, color);
-                //mouseDown = true;
+                //clipping stuff
+            }
+            else if (mode == Modes.DrawRectangles)
+            {
+                i.Cursor = Cursors.Cross;
+                if (counter == 0)
+                {
+                    p1.X = x;
+                    p1.Y = y;
+                    counter++;
+                }
+                else if (counter == 1)
+                {
+                    p2.X = x;
+                    p2.Y = y;
+                    counter = 0;
+                    shapes.Add(new Rectangle((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, color, thickness));
+                    p1 = new Point();
+                    p2 = new Point();
+                    i.Cursor = Cursors.Arrow;
+                }
             }
         }
-
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             i = this.img;
             RenderOptions.SetBitmapScalingMode(i, BitmapScalingMode.NearestNeighbor);
             RenderOptions.SetEdgeMode(i, EdgeMode.Aliased);
-            writeableBitmap = new WriteableBitmap(
+            writeable = new WriteableBitmap(
                 900,
                 900,
                 96,
@@ -451,7 +482,7 @@ namespace cg_proj2
                 PixelFormats.Bgr32,
                 null);
 
-            i.Source = writeableBitmap;
+            i.Source = writeable;
             i.Stretch = Stretch.None;
             i.HorizontalAlignment = HorizontalAlignment.Left;
             i.VerticalAlignment = VerticalAlignment.Top;
@@ -459,8 +490,9 @@ namespace cg_proj2
                 new MouseButtonEventHandler(i_MouseLeftButtonDown);
             i.MouseRightButtonDown +=
                 new MouseButtonEventHandler(i_MouseRightButtonDown);
-            actualHeight = (int)writeableBitmap.Height;
-            actualWidth = (int)writeableBitmap.Width;
+            actualHeight = (int)writeable.Height;
+            actualWidth = (int)writeable.Width;
+            //writeable = writeableBitmap;
         }
 
         static void SymmetricLineENE(int x1, int y1, int x2, int y2, bool[,] shape, Color clr, bool del)
@@ -591,6 +623,8 @@ namespace cg_proj2
         static public bool DrawLine(int x0, int y0, int x1, int y1, int _thickness, Color clr, bool del = false)
         {
             bool[,] shape = FillShape(_thickness);
+            //Rectangle rect = new Rectangle(0, 0, writeable.Width, writeable.Height);
+            writeable.Lock();
             if (x0 > x1)
             {
                 int tempx = x0;
@@ -607,12 +641,10 @@ namespace cg_proj2
                 if (dy > dx)
                 {
                     SymmetricLineNNE(x0, y0, x1, y1, shape, clr, del); // not ok
-                    return true;
                 }
                 else
                 {
                     SymmetricLineENE(x0, y0, x1, y1, shape, clr, del); // ok
-                    return true;
                 }
             }
             else
@@ -620,20 +652,22 @@ namespace cg_proj2
                 if (dy > -dx)
                 {
                     SymmetricLineESE(x0, y0, x1, y1, shape, clr, del); // not ok
-                    return true;
                 }
                 else
                 {
                     SymmetricLineSSE(x0, y0, x1, y1, shape, clr, del); // not ok
-                    return true;
 
                 }
             }
-
+            writeable.AddDirtyRect(new Int32Rect(0, 0, actualWidth, actualHeight));
+            writeable.Unlock();
+            i.Source = writeable;
+            return true;
         }
 
         static public void MidpointCircle(int R, int offestX, int offsetY, Color clr, int _thickness, bool del = false)
         {
+            writeable.Lock();
             int dE = 3;
             int dSE = 5 - 2 * R;
             int d = 1 - R;
@@ -673,6 +707,8 @@ namespace cg_proj2
                 DrawPixel(y + offestX, -x + offsetY, clr, shape, del);
                 DrawPixel(-y + offestX, -x + offsetY, clr, shape, del);
             }
+            writeable.AddDirtyRect(new Int32Rect(0, 0, actualWidth, actualHeight));
+            writeable.Unlock();
         }
 
         // midpoitn circle fill
@@ -838,7 +874,7 @@ namespace cg_proj2
                         return;
                     }
                     xd.Resize(thickness);
-                    if (shapes.Count>1)
+                    if (shapes.Count > 1)
                     {
                         RedrawShapes();
                     }
@@ -937,8 +973,10 @@ namespace cg_proj2
         // info IMPLEMENT
         private void MenuItem_Click_8(object sender, RoutedEventArgs e)
         {
-            string str = "XD";
-            MessageBox.Show(str, "Functionalities", MessageBoxButton.OK, MessageBoxImage.Information);
+            string str = "Left click: Drawing";
+            string str2 = "Right click: Depends on the mode which can be set in Options->Right click";
+            string str3 = "Middle click: Deleting given shape";
+            MessageBox.Show($"{str}\n{str2}\n{str3}", "Functionalities", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         // drawing mode menu
@@ -980,12 +1018,14 @@ namespace cg_proj2
         {
             if (shapes != null)
             {
-                var json = JsonConvert.SerializeObject(shapes);
+                JsonSerializerSettings settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
+                var json = JsonConvert.SerializeObject(shapes, settings);
                 SaveFileDialog dlg = new SaveFileDialog();
                 dlg.Title = "Save shapes to JSON";
                 dlg.FileName = "shapes"; // Default file name
                 dlg.DefaultExt = ".json"; // Default file extension
                 dlg.Filter = "JSON | *.json"; // Filter files by extension
+                //MessageBox.Show(json);
                 if (dlg.ShowDialog() == true)
                 {
                     string filename = dlg.FileName;
@@ -1004,15 +1044,17 @@ namespace cg_proj2
             OpenFileDialog op = new OpenFileDialog();
             op.Title = "Select shapes JSON";
             op.Filter = "JSON | *.json"; // Filter files by extension
+
             if (op.ShowDialog() == true)
             {
                 var filename = op.FileName;
+                JsonSerializerSettings settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
                 var json = System.IO.File.ReadAllText(filename);
                 //MessageBox.Show(json);
                 RemoveAllShapes();
                 try
                 {
-                    shapes = JsonConvert.DeserializeObject<List<IShape>>(json);
+                    shapes = JsonConvert.DeserializeObject<List<IShape>>(json, settings);
                     RedrawShapes();
                 }
                 catch
@@ -1061,6 +1103,12 @@ namespace cg_proj2
             dataContext.RightClickMode = _mode.ToString();
         }
 
+        private void SetPolyResizeMode(PolyLineResize _mode)
+        {
+            polyResize = _mode;
+            dataContext.PolyResize = _mode.ToString();
+        }
+
         private void colourPicker_SelectedColorChanged(object sender, RoutedPropertyChangedEventArgs<Color?> e)
         {
             color = (Color)colourPicker.SelectedColor;
@@ -1095,6 +1143,46 @@ namespace cg_proj2
             //MainWindow xd = sender as MainWindow;
             //SetTitle($"{xd.ActualWidth}, {xd.ActualHeight}");
 
+        }
+
+        private void MenuItem_Click_15(object sender, RoutedEventArgs e)
+        {
+            SetPolyResizeMode(PolyLineResize.Whole);
+        }
+
+        private void MenuItem_Click_16(object sender, RoutedEventArgs e)
+        {
+            SetPolyResizeMode(PolyLineResize.NextEdge);
+
+        }
+
+        private void MenuItem_Click_17(object sender, RoutedEventArgs e)
+        {
+            SetPolyResizeMode(PolyLineResize.PrevEdge);
+        }
+
+        private void CheckBox_Click(object sender, RoutedEventArgs e)
+        {
+            drawingMenu.IsEnabled = true;
+            rightClickMenu.IsEnabled = true;
+            mode = lastMode;
+            SetMode(lastMode);
+            SetRightClickMode(lastRightClickMode);
+        }
+
+        private void CheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            lastMode = mode;
+            lastRightClickMode = rightClickMode;
+            drawingMenu.IsEnabled = false;
+            rightClickMenu.IsEnabled = false;
+            SetRightClickMode(RightClickModes.Move);
+            SetMode(Modes.Clipping);
+        }
+
+        private void MenuItem_Click_18(object sender, RoutedEventArgs e)
+        {
+            SetMode(Modes.DrawRectangles);
         }
     }
 

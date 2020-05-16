@@ -10,7 +10,6 @@
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="CenterScreen"
         Loaded="Window_Loaded"
-        
         ResizeMode="NoResize">
     <Grid>
         <Grid.RowDefinitions>
@@ -27,13 +26,14 @@
                     <MenuItem Header="_Redraw" Click="MenuItem_Click_13"/>
                 </MenuItem>
                 <MenuItem Header="_Options" Height="20">
-                    <MenuItem Header="_Drawing">
+                    <MenuItem Header="_Drawing" Name="drawingMenu">
                         <MenuItem Header="Draw _lines" Click="MenuItem_Click_1"/>
                         <MenuItem Header="Draw _circle" Click="MenuItem_Click_2"/>
                         <!--<MenuItem Header="Draw _brush" Click="MenuItem_Click_7"/>-->
                         <MenuItem Header="Draw _polygons" Click="MenuItem_Click_4"/>
+                        <MenuItem Header="Draw _rectangles" Click="MenuItem_Click_18"/>
                     </MenuItem>
-                    <MenuItem Header="_Right click" Height="20">
+                    <MenuItem Header="_Right click" Height="20" Name="rightClickMenu">
                         <MenuItem Header="_Move" Click="MenuItem_Click_9"/>
                         <MenuItem Header="_Colour" Click="MenuItem_Click_10"/>
                         <MenuItem Header="_Resize" Click="MenuItem_Click_14"/>
@@ -42,6 +42,11 @@
                         <MenuItem Header="Move by _vertex" Click="MenuItem_Click_11"/>
                         <MenuItem Header="Move as a _whole" Click="MenuItem_Click_12"/>
                     </MenuItem>
+                    <!--<MenuItem Header="Pol_y resize" Height="20">
+                        <MenuItem Header="_Whole" Click="MenuItem_Click_15"/>
+                        <MenuItem Header="_Next edge" Click="MenuItem_Click_16"/>
+                        <MenuItem Header="_Previous edge" Click="MenuItem_Click_17"/>
+                    </MenuItem>-->
                 </MenuItem>
                 <MenuItem Header="_Info" Height="20" Click="MenuItem_Click_8"/>
             </Menu>
@@ -52,29 +57,42 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
             <TextBlock Grid.Column="0" Text="{Binding Path=DrawingMode}" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             <TextBlock Grid.Column="1" Text="{Binding Path=PolyMoveMode}" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             <TextBlock Grid.Column="2" Text="{Binding Path=RightClickMode}" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            <Grid Grid.Column="3">
+            <TextBlock Grid.Column="3" Text="{Binding Path=PolyResize}" Margin="5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Grid Grid.Row="1" HorizontalAlignment="Stretch" Grid.Column="0" Grid.ColumnSpan="3">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Brush thickness:" HorizontalAlignment="Right" Margin="5" VerticalAlignment="Center"/>
-                <xctk:IntegerUpDown Grid.Column="1" Value="{Binding Path=BrushThickness, Mode=TwoWay}" Margin="5" Minimum="1" Increment="2" 
-                                    AllowTextInput="False" ValueChanged="IntegerUpDown_ValueChanged"/>
-            </Grid>
-            <Grid Grid.Column="4">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Colour:" HorizontalAlignment="Right" Margin="5" VerticalAlignment="Center"/>
-                <xctk:ColorPicker Grid.Column="1" Name="colourPicker" SelectedColor="White" Margin="5" VerticalAlignment="Center" ShowStandardColors="False"
+                <Grid Grid.Column="0" HorizontalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Brush thickness:" HorizontalAlignment="Right" Margin="5" VerticalAlignment="Center"/>
+                    <xctk:IntegerUpDown Grid.Column="1" Value="{Binding Path=BrushThickness, Mode=TwoWay}" Margin="5" Minimum="1" Increment="2" 
+                                    AllowTextInput="False" ValueChanged="IntegerUpDown_ValueChanged" Maximum="77"/>
+                </Grid>
+                <Grid Grid.Column="1" HorizontalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Colour:" HorizontalAlignment="Right" Margin="5" VerticalAlignment="Center"/>
+                    <xctk:ColorPicker Grid.Column="1" Name="colourPicker" SelectedColor="White" Margin="5" VerticalAlignment="Center" ShowStandardColors="False"
                                   UsingAlphaChannel="False" SelectedColorChanged="colourPicker_SelectedColorChanged" HorizontalAlignment="Stretch"/>
+                </Grid>
+                <CheckBox Content="Clipping mode" Grid.Column="2"  HorizontalAlignment="Center" VerticalAlignment="Center" Checked="CheckBox_Checked" Unchecked="CheckBox_Click"/>
             </Grid>
+
         </Grid>
         <Image Name="img" Grid.Row="2" MouseDown="img_MouseDown" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
     </Grid>

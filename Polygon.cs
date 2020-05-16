@@ -9,13 +9,13 @@ using cg_proj2.enums;
 
 namespace cg_proj2
 {
-    class Polygon : IShape
+    public class Polygon : IShape
     {
         public List<Point> Vertices {get; set;}
         public Point InitialPoint { get; set; }
         public Color ColorPoly { get; set; }
         public int PolyThickness { get; set; }
-        private static int selectedVertexIndex;
+        protected static int selectedVertexIndex;
         public Polygon(int x, int y, Color color, int _thickness)
         {
             InitialPoint = new Point(x, y);
@@ -85,14 +85,13 @@ namespace cg_proj2
                 if (len<10)
                 {
                     selectedVertexIndex = Vertices.IndexOf(pt);
-
                     return true;
                 }
             }
             return false;
         }
 
-        public void MovePolygon(int x, int y, PolyMoveModes mode)
+        public virtual void MovePolygon(int x, int y, PolyMoveModes mode)
         {
             if(mode==PolyMoveModes.ByVertex)
             {
@@ -152,5 +151,6 @@ namespace cg_proj2
             PolyThickness = _thickness;
             DrawShape();
         }
+
     }
 }

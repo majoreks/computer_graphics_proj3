@@ -25,6 +25,7 @@ namespace cg_proj2
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "InitialPoint")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "ColorPoly")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "PolyThickness")]
+
     public interface IShape
     {
         void DeleteShape();

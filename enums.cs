@@ -7,7 +7,9 @@
         DrawCircles,
         Moving,
         DrawPolygons,
-        DrawBrush
+        DrawBrush,
+        Clipping,
+        DrawRectangles
     }
 
     public enum PolyMoveModes
@@ -21,5 +23,12 @@
         Move,
         Colour,
         Resize
+    }
+
+    public enum PolyLineResize
+    {
+        NextEdge,
+        PrevEdge,
+        Whole
     }
 }

@@ -94,5 +94,11 @@ namespace cg_proj2
             LineThickness = _thickness;
             DrawShape();
         }
+
+        public void MoveLineByVector(int Vx, int Vy)
+        {
+            P0 = new Point(P0.X + Vx, P0.Y + Vy);
+            P1 = new Point(P1.X + Vx, P1.Y + Vy);
+        }
     }
 }
