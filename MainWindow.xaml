@@ -27,8 +27,8 @@
                 </MenuItem>
                 <MenuItem Header="_Options" Height="20">
                     <MenuItem Header="_Drawing" Name="drawingMenu">
-                        <MenuItem Header="Draw _lines" Click="MenuItem_Click_1"/>
-                        <MenuItem Header="Draw _circle" Click="MenuItem_Click_2"/>
+                        <MenuItem Header="Draw _lines" Click="MenuItem_Click_1" Name="drawLinesMenuItem"/>
+                        <MenuItem Header="Draw _circle" Click="MenuItem_Click_2" Name="drawCirclesMenuItem"/>
                         <!--<MenuItem Header="Draw _brush" Click="MenuItem_Click_7"/>-->
                         <MenuItem Header="Draw _polygons" Click="MenuItem_Click_4"/>
                         <MenuItem Header="Draw _rectangles" Click="MenuItem_Click_18"/>
@@ -38,7 +38,7 @@
                         <MenuItem Header="_Colour" Click="MenuItem_Click_10"/>
                         <MenuItem Header="_Resize" Click="MenuItem_Click_14"/>
                     </MenuItem>
-                    <MenuItem Header="_Poly move" Height="20">
+                    <MenuItem Header="_Poly move" Height="20" Name="polyMoveMenu">
                         <MenuItem Header="Move by _vertex" Click="MenuItem_Click_11"/>
                         <MenuItem Header="Move as a _whole" Click="MenuItem_Click_12"/>
                     </MenuItem>
@@ -90,7 +90,8 @@
                     <xctk:ColorPicker Grid.Column="1" Name="colourPicker" SelectedColor="White" Margin="5" VerticalAlignment="Center" ShowStandardColors="False"
                                   UsingAlphaChannel="False" SelectedColorChanged="colourPicker_SelectedColorChanged" HorizontalAlignment="Stretch"/>
                 </Grid>
-                <CheckBox Content="Clipping mode" Grid.Column="2"  HorizontalAlignment="Center" VerticalAlignment="Center" Checked="CheckBox_Checked" Unchecked="CheckBox_Click"/>
+                <CheckBox Content="Clipping mode" Grid.Column="2"  HorizontalAlignment="Center" VerticalAlignment="Center" Checked="CheckBox_Checked" Unchecked="CheckBox_Click" 
+                          Name="clippingModeCheckBox"/>
             </Grid>
 
         </Grid>

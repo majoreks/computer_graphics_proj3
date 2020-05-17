@@ -49,6 +49,8 @@ namespace cg_proj2
         static PolyLineResize polyResize = PolyLineResize.Whole;
         static Modes lastMode;
         static Polygon poly;
+        static Polygon polyToClip;
+        static Polygon polyClipping;
         static Color color;
         static int thickness;
         static private Test dataContext = new Test("CG_proj3", mode.ToString(), rightClickMode.ToString(), polyMode.ToString(), 1, polyResize.ToString());
@@ -439,14 +441,15 @@ namespace cg_proj2
                         i.Cursor = Cursors.Arrow;
                         counter = 0;
                         poly = null;
+                        if ((mode == Modes.ClippingByPolygon || mode == Modes.ClippingByRectangle) && polyToClip != null)
+                        {
+                            polyClipping = shapes.Last() as Polygon;
+                            MessageBox.Show(polyClipping.ToString());
+                        }
                         return;
                     }
                 }
 
-            }
-            else if (mode == Modes.Clipping)
-            {
-                //clipping stuff
             }
             else if (mode == Modes.DrawRectangles)
             {
@@ -463,11 +466,17 @@ namespace cg_proj2
                     p2.Y = y;
                     counter = 0;
                     shapes.Add(new Rectangle((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, color, thickness));
+                    if ((mode == Modes.ClippingByPolygon || mode == Modes.ClippingByRectangle) && polyToClip != null)
+                    {
+                        polyClipping = shapes.Last() as Polygon;
+                        MessageBox.Show(polyClipping.ToString());
+                    }
                     p1 = new Point();
                     p2 = new Point();
                     i.Cursor = Cursors.Arrow;
                 }
             }
+
         }
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -879,6 +888,17 @@ namespace cg_proj2
                         RedrawShapes();
                     }
                 }
+                else if (rightClickMode == RightClickModes.PickPolyToClip)
+                {
+                    if (xd == null || !(xd is Polygon))
+                    {
+                        polyToClip = null;
+                        i.Cursor = Cursors.Arrow;
+                        return;
+                    }
+                    polyToClip = xd as Polygon;
+                    i.Cursor = Cursors.Cross;
+                }
             }
         }
 
@@ -1003,7 +1023,14 @@ namespace cg_proj2
         // pick drawing polygons
         private void MenuItem_Click_4(object sender, RoutedEventArgs e)
         {
-            SetMode(Modes.DrawPolygons);
+            if ((bool)clippingModeCheckBox.IsChecked)
+            {
+                SetMode(Modes.ClippingByPolygon);
+            }
+            else
+            {
+                SetMode(Modes.DrawPolygons);
+            }
         }
         private void SetMode(Modes _mode)
         {
@@ -1019,7 +1046,7 @@ namespace cg_proj2
             if (shapes != null)
             {
                 JsonSerializerSettings settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
-                var json = JsonConvert.SerializeObject(shapes, settings);
+                var json = JsonConvert.SerializeObject(shapes, Formatting.Indented, settings);
                 SaveFileDialog dlg = new SaveFileDialog();
                 dlg.Title = "Save shapes to JSON";
                 dlg.FileName = "shapes"; // Default file name
@@ -1163,27 +1190,44 @@ namespace cg_proj2
 
         private void CheckBox_Click(object sender, RoutedEventArgs e)
         {
-            drawingMenu.IsEnabled = true;
             rightClickMenu.IsEnabled = true;
+            polyMoveMenu.IsEnabled = true;
+            drawCirclesMenuItem.IsEnabled = true;
+            drawLinesMenuItem.IsEnabled = true;
             mode = lastMode;
             SetMode(lastMode);
             SetRightClickMode(lastRightClickMode);
         }
 
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
-        {
+        {   
+            if (mode == Modes.Moving)
+            {
+                clippingModeCheckBox.IsChecked = false;
+                i.Cursor = Cursors.Arrow;
+                return;
+            }
             lastMode = mode;
             lastRightClickMode = rightClickMode;
-            drawingMenu.IsEnabled = false;
             rightClickMenu.IsEnabled = false;
-            SetRightClickMode(RightClickModes.Move);
-            SetMode(Modes.Clipping);
+            polyMoveMenu.IsEnabled = false;
+            drawCirclesMenuItem.IsEnabled = false;
+            drawLinesMenuItem.IsEnabled = false;
+            //SetRightClickMode(RightClickModes.Move);
+            SetRightClickMode(RightClickModes.PickPolyToClip);
+            SetMode(Modes.ClippingByRectangle);
         }
 
         private void MenuItem_Click_18(object sender, RoutedEventArgs e)
         {
-            SetMode(Modes.DrawRectangles);
+            if ((bool)clippingModeCheckBox.IsChecked)
+            {
+                SetMode(Modes.ClippingByRectangle);
+            }
+            else
+            {
+                SetMode(Modes.DrawRectangles);
+            }
         }
     }
-
 }
