@@ -9,9 +9,9 @@
         DrawPolygons,
         DrawBrush,
         DrawRectangles,
-        ClippingByPolygon =DrawPolygons,
-        ClippingByRectangle=DrawRectangles
-        
+        ClippingByPolygon = DrawPolygons,
+        ClippingByRectangle = DrawRectangles
+
     }
 
     public enum PolyMoveModes
@@ -25,7 +25,9 @@
         Move,
         Colour,
         Resize,
-        PickPolyToClip
+        PickPolyToClip,
+        PolyFill,
+        FloodFill
     }
 
     public enum PolyLineResize

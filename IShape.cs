@@ -24,7 +24,9 @@ namespace cg_proj2
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "Vertices")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "InitialPoint")]
     [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "ColorPoly")]
-    [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "PolyThickness")]
+    [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "IsFilled")]
+    [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "IsClipping")]
+    [JsonSubtypes.KnownSubTypeWithProperty(typeof(Polygon), "FillColor")]
 
     public interface IShape
     {

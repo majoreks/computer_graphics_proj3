@@ -1,0 +1,53 @@
+{
+  "$type": "System.Collections.Generic.List`1[[cg_proj2.IShape, cg_proj2]], mscorlib",
+  "$values": [
+    {
+      "$type": "cg_proj2.Polygon, cg_proj2",
+      "Vertices": {
+        "$type": "System.Collections.Generic.List`1[[System.Windows.Point, WindowsBase]], mscorlib",
+        "$values": [
+          "325,67",
+          "418,64",
+          "531,105",
+          "543,209",
+          "484,309",
+          "334,340",
+          "187,325",
+          "169,238",
+          "325,67"
+        ]
+      },
+      "InitialPoint": "325,67",
+      "ColorPoly": "#FFFFFFFF",
+      "PolyThickness": 1,
+      "IsFilled": false,
+      "IsClipping": false,
+      "FillColor": "#00000000"
+    },
+    {
+      "$type": "cg_proj2.Polygon, cg_proj2",
+      "Vertices": {
+        "$type": "System.Collections.Generic.List`1[[System.Windows.Point, WindowsBase]], mscorlib",
+        "$values": [
+          "419,574",
+          "374,487",
+          "294,480",
+          "227,582",
+          "268,704",
+          "390,769",
+          "495,689",
+          "523,604",
+          "531,509",
+          "489,492",
+          "419,574"
+        ]
+      },
+      "InitialPoint": "419,574",
+      "ColorPoly": "#FFFFFFFF",
+      "PolyThickness": 1,
+      "IsFilled": false,
+      "IsClipping": false,
+      "FillColor": "#00000000"
+    }
+  ]
+}

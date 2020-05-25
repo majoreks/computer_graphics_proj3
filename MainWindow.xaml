@@ -37,6 +37,8 @@
                         <MenuItem Header="_Move" Click="MenuItem_Click_9"/>
                         <MenuItem Header="_Colour" Click="MenuItem_Click_10"/>
                         <MenuItem Header="_Resize" Click="MenuItem_Click_14"/>
+                        <MenuItem Header="_Fill Poly" Click="MenuItem_Click_19"/>
+                        <MenuItem Header="Floo_d Fill" Click="MenuItem_Click_20"/>
                     </MenuItem>
                     <MenuItem Header="_Poly move" Height="20" Name="polyMoveMenu">
                         <MenuItem Header="Move by _vertex" Click="MenuItem_Click_11"/>

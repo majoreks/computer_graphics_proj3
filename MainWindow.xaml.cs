@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿#nullable enable
+using Microsoft.Win32;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ using System.Windows.Shapes;
 using cg_proj2.enums;
 using System.Runtime.InteropServices;
 using System.Drawing.Imaging;
+using System.Runtime.CompilerServices;
 
 namespace cg_proj2
 {
@@ -43,7 +45,7 @@ namespace cg_proj2
         static List<IShape> shapes;
         static IShape movingShape;
         static Modes mode = Modes.DrawLines;
-        static PolyMoveModes polyMode = PolyMoveModes.ByVertex;
+        static PolyMoveModes polyMode = PolyMoveModes.WholePoly;
         static RightClickModes rightClickMode = RightClickModes.Move;
         static RightClickModes lastRightClickMode;
         static PolyLineResize polyResize = PolyLineResize.Whole;
@@ -53,6 +55,8 @@ namespace cg_proj2
         static Polygon polyClipping;
         static Color color;
         static int thickness;
+        static Dictionary<Polygon, List<Polygon>> clippingPolys;
+        static Dictionary<Polygon, List<Line>> clippedLines;
         static private Test dataContext = new Test("CG_proj3", mode.ToString(), rightClickMode.ToString(), polyMode.ToString(), 1, polyResize.ToString());
         public class Test : INotifyPropertyChanged
         {
@@ -156,9 +160,20 @@ namespace cg_proj2
         }
         public MainWindow()
         {
+            string str1 = "Since the controls are rather not very intuitive:\n\n";
+            string str2 = "I recommend loading simple_polygons.json or drawing simple polygon using controls\n";
+            string str3 = "Then to enable clipping: click on Clipping mode\n";
+            string str4 = "And now right click vertex of a polygon to grab it and draw the clipping rectangle/polygon (select which one by using menu -> drawing)\n";
+            string str5 = "Now to test moving, uncheck the Clipping mode and move things around via selecting Move option from right click menu (it's default)\n\n";
+            string str6 = "Filling is just, select fill in the right click menu and select polygon, it'll get filled with the colour currently selected by user\n";
+            string str7 = "Flood fill is similar, select Flood Fill from right click menu and click on a region";
+            string msg = str1 + str2 + str3 + str4 + str5 + str6 + str7;
+            MessageBox.Show(msg);
             lastMode = mode;
             shapes = new List<IShape>();
             this.DataContext = dataContext;
+            clippingPolys = new Dictionary<Polygon, List<Polygon>>();
+            clippedLines = new Dictionary<Polygon, List<Line>>();
             InitializeComponent();
         }
 
@@ -294,7 +309,6 @@ namespace cg_proj2
             int row = y;
             try
             {
-                writeable.Lock();
 
                 unsafe
                 {
@@ -310,7 +324,6 @@ namespace cg_proj2
             }
             finally
             {
-                writeable.Unlock();
             }
         }
         static void i_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
@@ -358,15 +371,35 @@ namespace cg_proj2
                 else if (movingShape is Polygon)
                 {
                     Polygon tmpPoly = movingShape as Polygon;
-                    tmpPoly.MovePolygon(x, y, polyMode);
+                    if (clippingPolys.ContainsKey(tmpPoly))
+                    {
+                        DeleteClippedLines(tmpPoly);
+                        tmpPoly.MovePolygon(x, y, polyMode);
+                        foreach (Polygon polygon in clippingPolys[tmpPoly])
+                        {
+                            CyrusBeck(polygon, tmpPoly);
+                        }
+                    }
+                    else if (clippingPolys.ContainsClippingPoly(tmpPoly))
+                    {
+                        //MessageBox.Show("XDDDDDD");
+                        DeleteClippedLinesSingle(tmpPoly);
+                        tmpPoly.MovePolygon(x, y, polyMode);
+                        CyrusBeck(tmpPoly, clippingPolys.FindPolyKey(tmpPoly));
+                    }
+                    else
+                    {
+                        tmpPoly.MovePolygon(x, y, polyMode);
+                    }
+
                     i.Cursor = Cursors.Arrow;
                     mode = lastMode;
                     movingShape = null;
+                    polyToClip = null;
                 }
-                if (shapes.Count > 1)
-                {
-                    RedrawShapes();
-                }
+
+                RedrawShapes();
+
             }
             else if (mode == Modes.DrawLines)
             {
@@ -385,6 +418,13 @@ namespace cg_proj2
                     counter = 0;
                     DrawLine((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, thickness, color);
                     shapes.Add(new Line((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, color, thickness));
+                    //Point[] xddd = CyrusBeckLine((shapes[0] as Polygon), new Point[] { new Point(p1.X, p1.Y), new Point(p2.X, p2.Y) });
+                    //MessageBox.Show($"{xddd.Length}");
+                    //DrawLine((int)xddd[0].X, (int)xddd[0].Y, (int)xddd[1].X, (int)xddd[1].Y, 3, Colors.Red);
+                    //Line? tmp;
+                    //tmp = CyrusBeckLine(shapes[0] as Polygon, (int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y);
+                    //CyrusBeck(shapes[0] as Polygon, (int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y);
+                    //MessageBox.Show(CyrusBeckLine(shapes[0] as Polygon, (int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y)!=null ? ");
                     p1 = new Point();
                     p2 = new Point();
                     i.Cursor = Cursors.Arrow;
@@ -424,60 +464,120 @@ namespace cg_proj2
                     i.Cursor = Cursors.Arrow;
                 }
             }
-            else if (mode == Modes.DrawPolygons)
+            else if (rightClickMode != RightClickModes.PickPolyToClip || polyToClip != null)
             {
-                //MyGetPixel(x, y);
-                if (counter == 0)
+                if (mode == Modes.DrawPolygons)
+                {
+                    //MyGetPixel(x, y);
+                    if (counter == 0)
+                    {
+                        i.Cursor = Cursors.Cross;
+                        poly = new Polygon(x, y, polyToClip == null ? color : Colors.White, polyToClip == null ? thickness : 1);
+                        shapes.Add(poly);
+                        counter++;
+                    }
+                    else
+                    {
+                        if (poly.AddVertex(x, y))
+                        {
+                            i.Cursor = Cursors.Arrow;
+                            counter = 0;
+                            if ((mode == Modes.ClippingByPolygon || mode == Modes.ClippingByRectangle) && polyToClip != null)
+                            {
+                                if (!((shapes[shapes.Count - 1] as Polygon).CheckIfConvex()))
+                                {
+                                    poly = null;
+                                    shapes[shapes.Count - 1].DeleteShape();
+                                    shapes.Remove(shapes[shapes.Count - 1]);
+                                    RedrawShapes();
+                                    return;
+                                }
+                                (shapes[shapes.Count - 1] as Polygon).SortClockwise();
+
+                                CyrusBeck(shapes[shapes.Count - 1] as Polygon, polyToClip);
+                                (shapes[shapes.Count - 1] as Polygon).IsClipping = true;
+                                List<Polygon> tmpList;
+                                if (!clippingPolys.ContainsKey(polyToClip))
+                                {
+                                    clippingPolys.Add(polyToClip, new List<Polygon>() { shapes[shapes.Count - 1] as Polygon });
+                                }
+                                else
+                                {
+                                    clippingPolys[polyToClip].Add(shapes[shapes.Count - 1] as Polygon);
+                                }
+                                shapes.Remove(shapes[shapes.Count - 1]);
+                                polyToClip = null;
+                                //clippingPolys.Add(polyToClip, shapes[shapes.Count - 1] as Polygon);
+                            }
+                            poly = null;
+                            (shapes[shapes.Count - 1] as Polygon).SortClockwise();
+                            return;
+                        }
+                    }
+
+                }
+                else if (mode == Modes.DrawRectangles)
                 {
                     i.Cursor = Cursors.Cross;
-                    poly = new Polygon(x, y, color, thickness);
-                    shapes.Add(poly);
-                    counter++;
-                }
-                else
-                {
-                    if (poly.AddVertex(x, y))
+                    if (counter == 0)
                     {
-                        i.Cursor = Cursors.Arrow;
+                        p1.X = x;
+                        p1.Y = y;
+                        counter++;
+                    }
+                    else if (counter == 1)
+                    {
+                        p2.X = x;
+                        p2.Y = y;
                         counter = 0;
-                        poly = null;
+                        shapes.Add(new Rectangle((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, polyToClip == null ? color : Colors.White, polyToClip == null ? thickness : 1));
                         if ((mode == Modes.ClippingByPolygon || mode == Modes.ClippingByRectangle) && polyToClip != null)
                         {
-                            polyClipping = shapes.Last() as Polygon;
-                            MessageBox.Show(polyClipping.ToString());
-                        }
-                        return;
-                    }
-                }
+                            CyrusBeck(shapes[shapes.Count - 1] as Polygon, polyToClip);
+                            (shapes[shapes.Count - 1] as Polygon).IsClipping = true;
+                            if (!clippingPolys.ContainsKey(polyToClip))
+                            {
+                                clippingPolys.Add(polyToClip, new List<Polygon>() { shapes[shapes.Count - 1] as Polygon });
+                            }
+                            else
+                            {
+                                clippingPolys[polyToClip].Add(shapes[shapes.Count - 1] as Polygon);
+                            }
+                            shapes.Remove(shapes[shapes.Count - 1]);
 
-            }
-            else if (mode == Modes.DrawRectangles)
-            {
-                i.Cursor = Cursors.Cross;
-                if (counter == 0)
-                {
-                    p1.X = x;
-                    p1.Y = y;
-                    counter++;
-                }
-                else if (counter == 1)
-                {
-                    p2.X = x;
-                    p2.Y = y;
-                    counter = 0;
-                    shapes.Add(new Rectangle((int)p1.X, (int)p1.Y, (int)p2.X, (int)p2.Y, color, thickness));
-                    if ((mode == Modes.ClippingByPolygon || mode == Modes.ClippingByRectangle) && polyToClip != null)
-                    {
-                        polyClipping = shapes.Last() as Polygon;
-                        MessageBox.Show(polyClipping.ToString());
+                        }
+                        p1 = new Point();
+                        p2 = new Point();
+                        i.Cursor = Cursors.Arrow;
+                        polyToClip = null;
                     }
-                    p1 = new Point();
-                    p2 = new Point();
-                    i.Cursor = Cursors.Arrow;
                 }
             }
 
         }
+
+        private void DeleteClippedLines(Polygon key)
+        {
+            if (clippingPolys.ContainsKey(key))
+            {
+                foreach (Polygon polygon in clippingPolys[key])
+                {
+                    DeleteClippedLinesSingle(polygon);
+                }
+
+            }
+        }
+
+        private void DeleteClippedLinesSingle(Polygon polygon)
+        {
+            foreach (Line line in clippedLines[polygon].ToArray())
+            {
+                line.DeleteShape();
+                clippedLines[polygon].Remove(line);
+            }
+            clippedLines.Remove(polygon);
+        }
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             i = this.img;
@@ -828,8 +928,48 @@ namespace cg_proj2
                 {
                     return;
                 }
-                tmpShape.DeleteShape();
+                if (tmpShape is Polygon)
+                {
+                    if ((tmpShape as Polygon).IsClipping)
+                    {
+                        if (clippedLines.ContainsKey(tmpShape as Polygon))
+                        {
+                            foreach (Line line in clippedLines[tmpShape as Polygon])
+                            {
+                                line.DeleteShape();
+                            }
+                            clippedLines.Remove(tmpShape as Polygon);
+                        }
+
+                        var myKey = clippingPolys.DeleteFromList(tmpShape as Polygon);
+                        //clippingPolys.Remove(myKey);
+                        tmpShape.DeleteShape();
+                        myKey.DrawShape();
+                    }
+                    else
+                    {
+                        if (clippingPolys.ContainsKey(tmpShape as Polygon))
+                        {
+                            foreach (Polygon polygon in clippingPolys[tmpShape as Polygon])
+                            {
+                                foreach (Line line in clippedLines[polygon])
+                                {
+                                    line.DeleteShape();
+                                }
+                                clippedLines.Remove(polygon);
+                                polygon.DeleteShape();
+                            }
+                            clippingPolys.Remove(tmpShape as Polygon);
+                        }
+                        tmpShape.DeleteShape();
+                    }
+                }
+                else
+                {
+                    tmpShape.DeleteShape();
+                }
                 shapes.Remove(tmpShape);
+                RedrawShapes();
             }
             else if (e.ChangedButton == MouseButton.Right)
             {
@@ -896,12 +1036,39 @@ namespace cg_proj2
                         i.Cursor = Cursors.Arrow;
                         return;
                     }
-                    polyToClip = xd as Polygon;
-                    i.Cursor = Cursors.Cross;
+                    if (xd is Rectangle)
+                    {
+                        MessageBox.Show("Not possible");
+                    }
+                    else
+                    {
+                        polyToClip = xd as Polygon;
+                        i.Cursor = Cursors.Cross;
+                    }
+
+                }
+                else if (rightClickMode == RightClickModes.PolyFill)
+                {
+                    if (xd == null || !(xd is Polygon))
+                    {
+                        return;
+                    }
+                    (xd as Polygon).EdgeTableFill(color);
+                }
+                else if (rightClickMode == RightClickModes.FloodFill)
+                {
+                    //(int)e.GetPosition(i).X, (int)e.GetPosition(i).Y
+                    int x = (int)e.GetPosition(i).X, y = (int)e.GetPosition(i).Y;
+                    int pixelColor = MyGetPixel(x, y);
+                    Color clr = new Color();
+                    clr.R = (byte)((pixelColor & 0x00ff0000) >> 16);
+                    clr.G = (byte)((pixelColor & 0x0000ff00) >> 8);
+                    clr.B = (byte)(pixelColor & 0x000000ff);
+                    FloodFillNR(x, y, clr, color);
+                    //MessageBox.Show($"{red}, {green}, {blue}");
                 }
             }
         }
-
         private static IShape FindClosestShape(int x, int y)
         {
             if (shapes.Count == 0)
@@ -918,8 +1085,42 @@ namespace cg_proj2
                         return shape;
                     }
                 }
+            }
+
+            if (clippingPolys.Count == 0)
+            {
                 return null;
             }
+            else
+            {
+                foreach (List<Polygon> list in clippingPolys.Values)
+                {
+                    foreach (Polygon poly in list)
+                    {
+                        if (poly.WasClicked(x, y))
+                        {
+                            return poly;
+                        }
+                    }
+                }
+            }
+
+            if (shapes.Count == 0)
+            {
+                return null;
+            }
+            else
+            {
+                foreach (IShape shape in shapes)
+                {
+
+                    if (shape.WasClicked(x, y))
+                    {
+                        return shape;
+                    }
+                }
+            }
+            return null;
         }
 
         // remove all shapes
@@ -929,6 +1130,28 @@ namespace cg_proj2
             {
                 shape.DeleteShape();
                 shapes.Remove(shape);
+            }
+            if (clippingPolys.Count > 0)
+            {
+                foreach (List<Polygon> list in clippingPolys.Values)
+                {
+                    foreach (Polygon poly in list)
+                    {
+                        poly.DeleteShape();
+                    }
+                }
+                clippingPolys.Clear();
+            }
+            if (clippedLines.Count > 0)
+            {
+                foreach (List<Line> list in clippedLines.Values)
+                {
+                    foreach (Line line in list)
+                    {
+                        line.DeleteShape();
+                    }
+                }
+                clippedLines.Clear();
             }
         }
 
@@ -943,6 +1166,28 @@ namespace cg_proj2
             {
                 shape.DeleteShape();
                 shape.DrawShape();
+            }
+            if (clippingPolys.Count > 0)
+            {
+                foreach (List<Polygon> list in clippingPolys.Values)
+                {
+                    foreach (Polygon poly in list)
+                    {
+                        poly.DeleteShape();
+                        poly.DrawShape();
+                    }
+                }
+            }
+            if (clippedLines.Count > 0)
+            {
+                foreach (List<Line> list in clippedLines.Values)
+                {
+                    foreach (Line line in list)
+                    {
+                        line.DeleteShape();
+                        line.DrawShape();
+                    }
+                }
             }
         }
 
@@ -1200,7 +1445,7 @@ namespace cg_proj2
         }
 
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
-        {   
+        {
             if (mode == Modes.Moving)
             {
                 clippingModeCheckBox.IsChecked = false;
@@ -1228,6 +1473,147 @@ namespace cg_proj2
             {
                 SetMode(Modes.DrawRectangles);
             }
+        }
+
+        private int DotProduct(Point p0, Point p1)
+        {
+            return (int)(p0.X * p1.X + p0.Y * p1.Y);
+        }
+
+        private Line? CyrusBeckLine(Polygon clippingPoly, int x1, int y1, int x2, int y2)
+        {
+            //if (!(clippingPoly.CheckIfConvex()))
+            //{
+            //    MessageBox.Show("Poly not convex");
+            //    return null;
+            //}
+            Point[] lineToClip = new Point[] { new Point(x1, y1), new Point(x2, y2) };
+            List<Point> vertices = clippingPoly.Vertices;
+            int n = vertices.Count - 1;
+            Point[] normal = new Point[n];
+
+            for (int i = 0; i < n; i++)
+            {
+                normal[i].Y = vertices[(i + 1) % n].X - vertices[i].X;
+                normal[i].X = vertices[i].Y - vertices[(i + 1) % n].Y;
+            }
+
+            Point P1toP0 = new Point(lineToClip[1].X - lineToClip[0].X, lineToClip[1].Y - lineToClip[0].Y);
+            Point[] P0toPEi = new Point[n];
+
+            for (int i = 0; i < n; i++)
+            {
+
+                P0toPEi[i].X = vertices[i].X - lineToClip[0].X;
+
+                P0toPEi[i].Y = vertices[i].Y - lineToClip[0].Y;
+            }
+
+            int[] num = new int[n], denom = new int[n];
+            for (int i = 0; i < n; i++)
+            {
+                num[i] = DotProduct(normal[i], P0toPEi[i]);
+                denom[i] = DotProduct(normal[i], P1toP0);
+            }
+
+            double[] t = new double[n];
+            List<double> tmpE = new List<double>(), tmpL = new List<double>();
+            for (int i = 0; i < n; i++)
+            {
+
+                t[i] = (double)(num[i]) / (float)(denom[i]);
+
+                if (denom[i] > 0)
+                    tmpE.Add(t[i]);
+                else
+                    tmpL.Add(t[i]);
+            }
+
+            double[] tmp = new double[2];
+            tmpE.Add(0);
+            tmp[0] = tmpE.Max();
+
+            tmpL.Add(1);
+            tmp[1] = tmpL.Min();
+
+            if (tmp[0] > tmp[1])
+            {
+                return null;
+            }
+            return new Line((int)((double)lineToClip[0].X + (double)P1toP0.X * (double)tmp[0]), (int)((double)lineToClip[0].Y + (double)P1toP0.Y * (double)tmp[0]),
+                (int)((double)lineToClip[0].X + (double)P1toP0.X * (double)tmp[1]), (int)((double)lineToClip[0].Y + (double)P1toP0.Y * (double)tmp[1]),
+                Colors.Red, 3);
+        }
+
+        private void CyrusBeck(Polygon clippingPoly, Polygon toClipPoly)
+        {
+            //clippingPoly.SortClockwise();
+            //toClipPoly.SortClockwise();
+            //MessageBox.Show("XD");
+            List<Line> tmp = new List<Line>();
+            Line tmpLine;
+            for (int i = 1; i < toClipPoly.Vertices.Count; i++)
+            {
+                //MainWindow.DrawLine((int)toClipPoly.Vertices[i - 1].X, (int)toClipPoly.Vertices[i - 1].Y, (int)toClipPoly.Vertices[i].X, (int)toClipPoly.Vertices[i].Y, PolyThickness, ColorPoly);
+                tmpLine = CyrusBeckLine(clippingPoly, (int)toClipPoly.Vertices[i - 1].X, (int)toClipPoly.Vertices[i - 1].Y, (int)toClipPoly.Vertices[i].X, (int)toClipPoly.Vertices[i].Y);
+                if (tmpLine != null)
+                {
+                    //MessageBox.Show("XD");
+                    tmpLine.LineThickness = toClipPoly.PolyThickness + 2;
+                    tmp.Add(tmpLine);
+                    tmpLine.DrawShape();
+                }
+            }
+            clippedLines.Add(clippingPoly, tmp);
+        }
+
+        private void MenuItem_Click_19(object sender, RoutedEventArgs e)
+        {
+            SetRightClickMode(RightClickModes.PolyFill);
+        }
+
+        private void FloodFillNR(int x0, int y0, Color targetColor, Color replacementColor)
+        {
+            writeable.Lock();
+            Stack<Point> stack = new Stack<Point>();
+            stack.Push(new Point(x0, y0));
+            while (stack.Count > 0)
+            {
+                Point p = stack.Pop();
+                int x = (int)p.X, y = (int)p.Y;
+                if (x < 0 || x >= actualWidth || y < 0 || y >= actualHeight)
+                {
+                    continue;
+                }
+                DrawPixel(x, y, replacementColor);
+                if (CheckCondFFNR(x + 1, y, targetColor)) stack.Push(new Point(x + 1, y));
+                if (CheckCondFFNR(x - 1, y, targetColor)) stack.Push(new Point(x - 1, y));
+                if (CheckCondFFNR(x, y + 1, targetColor)) stack.Push(new Point(x, y + 1));
+                if (CheckCondFFNR(x, y - 1, targetColor)) stack.Push(new Point(x, y - 1));
+            }
+
+            writeable.AddDirtyRect(new Int32Rect(0, 0, actualWidth, actualHeight));
+            writeable.Unlock();
+            i.Source = writeable;
+        }
+
+        private bool CheckCondFFNR(int x, int y, Color targetColor)
+        {
+            int pixelColor = MyGetPixel(x, y);
+            Color clr = new Color();
+            clr.R = (byte)((pixelColor & 0x00ff0000) >> 16);
+            clr.G = (byte)((pixelColor & 0x0000ff00) >> 8);
+            clr.B = (byte)(pixelColor & 0x000000ff);
+            if (targetColor == clr)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        private void MenuItem_Click_20(object sender, RoutedEventArgs e)
+        {
+            SetRightClickMode(RightClickModes.FloodFill);
         }
     }
 }
